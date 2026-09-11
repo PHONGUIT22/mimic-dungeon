@@ -1,0 +1,7 @@
+local-verify-network/
+node_modules/
+package-lock.json
+dist/
+examples/*/dist/
+*.log
+simulator/local-node/deployed.json
