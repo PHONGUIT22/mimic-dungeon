@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 340" width="600" height="340" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="60%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <radialGradient id="portalGlow" cx="50%" cy="45%" r="40%">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#6366f1" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="chestGrad2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#78350f"/>
+    </linearGradient>
+  </defs>
+  <!-- Dungeon background -->
+  <rect width="600" height="340" fill="url(#bgGrad)"/>
+  <!-- Mystic Portal Glow -->
+  <circle cx="300" cy="150" r="180" fill="url(#portalGlow)"/>
+  <!-- Stone Dungeon Pillars -->
+  <rect x="40" y="30" width="50" height="310" rx="4" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+  <rect x="510" y="30" width="50" height="310" rx="4" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+  <!-- Torches -->
+  <circle cx="65" cy="110" r="14" fill="#f97316" opacity="0.8"/>
+  <circle cx="65" cy="110" r="6" fill="#fef08a"/>
+  <circle cx="535" cy="110" r="14" fill="#f97316" opacity="0.8"/>
+  <circle cx="535" cy="110" r="6" fill="#fef08a"/>
+  <!-- Central Mystery Chest -->
+  <g transform="translate(230, 110) scale(2.2)">
+    <rect x="10" y="26" width="44" height="28" rx="4" fill="url(#chestGrad2)" stroke="#451a03" stroke-width="2"/>
+    <path d="M8 26 C8 16 20 12 32 12 C44 12 56 16 56 26 Z" fill="url(#chestGrad2)" stroke="#451a03" stroke-width="2"/>
+    <rect x="16" y="12" width="5" height="42" fill="#fef08a" stroke="#451a03" stroke-width="1"/>
+    <rect x="43" y="12" width="5" height="42" fill="#fef08a" stroke="#451a03" stroke-width="1"/>
+    <rect x="27" y="24" width="10" height="12" rx="2" fill="#fef08a" stroke="#451a03" stroke-width="1"/>
+    <!-- Glowing red mimic eyes -->
+    <circle cx="22" cy="20" r="2.5" fill="#ef4444"/>
+    <circle cx="42" cy="20" r="2.5" fill="#ef4444"/>
+  </g>
+  <!-- Title Text -->
+  <text x="300" y="275" font-family="'Rubik', sans-serif" font-weight="900" font-size="34" fill="#f8fafc" text-anchor="middle" letter-spacing="2">MIMIC DUNGEON</text>
+  <text x="300" y="305" font-family="'Poppins', sans-serif" font-weight="600" font-size="14" fill="#a855f7" text-anchor="middle" letter-spacing="4">96.00% CERTIFIED RTP • INSTANT ON-CHAIN VRF</text>
+</svg>

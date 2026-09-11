@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "gameId": "MimicChest",
+  "apiVersion": 1,
+  "defaultLocale": "en",
+  "locales": {
+    "en": {
+      "name": "Mimic Dungeon",
+      "description": "Brave the perilous dungeon! Choose your wager and open the mystery chest. Beware the deadly Mimic (x0), or claim Silver (x1.2), Gold (x2.5), and Legendary Relics (x5.0) with a certified 96.00% RTP."
+    },
+    "vi": {
+      "name": "Hầm Ngục Mimic",
+      "description": "Thử thách lòng dũng cảm trong hầm ngục! Đặt cược và mở rương kho báu: cẩn thận Quái vật Mimic (x0), nhận Rương Bạc (x1.2), Rương Vàng (x2.5) hoặc Bảo vật Huyền thoại (x5.0) với RTP 96.00% chuẩn xác."
+    }
+  },
+  "presentation": {
+    "mode": "full-iframe",
+    "hostPanels": {
+      "openSession": false,
+      "history": false,
+      "status": false
+    }
+  },
+  "capabilities": {
+    "openSession": true,
+    "submitAction": false,
+    "forfeitExpiredSession": false,
+    "cancelStuckRandomness": false,
+    "resize": true
+  },
+  "assets": {
+    "iconUrl": "/assets/chest-icon.svg",
+    "coverUrl": "/assets/dungeon-cover.svg"
+  }
+}
