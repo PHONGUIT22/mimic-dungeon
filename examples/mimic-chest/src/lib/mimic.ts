@@ -1,0 +1,276 @@
+import { decodeAbiParameters, encodeAbiParameters, hexToBytes, keccak256, type Hex } from 'viem';
+import type { HexString } from '@chain/casino-sdk';
+
+export const RTP_BPS = 9600n; // 96.00% RTP
+export const BASIS_POINTS = 10000n;
+export const MAX_MULTIPLIER = 5n;
+
+export const SAMPLE_RANGE = 100;
+export const SAMPLE_REJECT = 200; // floor(256 / 100) * 100 = 200. Rejects >= 200 to eliminate modulo bias.
+
+export type ChestTierType = 'MIMIC' | 'SILVER' | 'GOLD' | 'LEGENDARY';
+
+export type ChestTierInfo = {
+  tier: ChestTierType;
+  tierIndex: number;
+  name: string;
+  nameVi: string;
+  multiplier: number;
+  multiplierText: string;
+  probability: number;
+  probabilityText: string;
+  color: string;
+  glowColor: string;
+  bgGradient: string;
+  badgeBorder: string;
+  description: string;
+};
+
+export const PAYTABLE: ChestTierInfo[] = [
+  {
+    tier: 'MIMIC',
+    tierIndex: 0,
+    name: 'Mimic Monster',
+    nameVi: 'Quái vật Mimic',
+    multiplier: 0,
+    multiplierText: 'x0.0',
+    probability: 0.50,
+    probabilityText: '50.0%',
+    color: '#ef4444',
+    glowColor: 'rgba(239, 68, 68, 0.6)',
+    bgGradient: 'from-red-950/80 to-neutral-900',
+    badgeBorder: 'border-red-600',
+    description: 'A cunning monster in disguise! Swallows your wager whole.',
+  },
+  {
+    tier: 'SILVER',
+    tierIndex: 1,
+    name: 'Silver Chest',
+    nameVi: 'Rương Bạc',
+    multiplier: 1.2,
+    multiplierText: 'x1.2',
+    probability: 0.30,
+    probabilityText: '30.0%',
+    color: '#94a3b8',
+    glowColor: 'rgba(148, 163, 184, 0.6)',
+    bgGradient: 'from-slate-800 to-neutral-900',
+    badgeBorder: 'border-slate-400',
+    description: 'Polished silver cache! Returns your bet plus 20% bonus profit.',
+  },
+  {
+    tier: 'GOLD',
+    tierIndex: 2,
+    name: 'Gold Chest',
+    nameVi: 'Rương Vàng',
+    multiplier: 2.5,
+    multiplierText: 'x2.5',
+    probability: 0.16,
+    probabilityText: '16.0%',
+    color: '#eab308',
+    glowColor: 'rgba(234, 179, 8, 0.6)',
+    bgGradient: 'from-amber-950/80 to-neutral-900',
+    badgeBorder: 'border-amber-400',
+    description: 'Gleaming chest of gold bullion and precious jewels! Generous 2.5x payout.',
+  },
+  {
+    tier: 'LEGENDARY',
+    tierIndex: 3,
+    name: 'Legendary Relic',
+    nameVi: 'Bảo vật Huyền thoại',
+    multiplier: 5.0,
+    multiplierText: 'x5.0',
+    probability: 0.04,
+    probabilityText: '4.0%',
+    color: '#a855f7',
+    glowColor: 'rgba(168, 85, 247, 0.8)',
+    bgGradient: 'from-purple-950/90 to-neutral-900',
+    badgeBorder: 'border-purple-400',
+    description: 'Ancient mythical artifact of immense power! Top-tier jackpot 5.0x payout.',
+  },
+];
+
+export type MimicOutcome = {
+  tier: ChestTierType;
+  tierIndex: number;
+  multiplier: number;
+  multiplierBps: bigint;
+  payout: bigint;
+  roll: number;
+  name: string;
+  description: string;
+  won: boolean;
+  randomness: HexString;
+};
+
+// abi.encode(tier, payout, randomness, roll)
+const GAME_STATE_PARAMS = [
+  { type: 'uint8' },
+  { type: 'uint256' },
+  { type: 'bytes32' },
+  { type: 'uint8' },
+] as const;
+
+/**
+ * Rejection Sampling: identical mirror of MimicChest.sol `_sampleRoll`.
+ * Traverses bytes, rejects any byte >= SAMPLE_REJECT (200), expands via keccak256 if needed.
+ */
+export function sampleRollFromRandomness(randomBytes: Uint8Array): number {
+  let idx = 0;
+  let current: Uint8Array = randomBytes;
+  while (true) {
+    if (idx < 32 && idx < current.length) {
+      const b = current[idx];
+      idx++;
+      if (b < SAMPLE_REJECT) {
+        return b % SAMPLE_RANGE;
+      }
+      continue;
+    }
+    current = hexToBytes(keccak256(current));
+    idx = 0;
+  }
+}
+
+export function outcomeFromRoll(roll: number, wager: bigint, randomness: HexString = '0x0'): MimicOutcome {
+  let tierInfo: ChestTierInfo;
+  let payout: bigint;
+  let multiplierBps: bigint;
+
+  if (roll < 50) {
+    // 0..49: Mimic (50%)
+    tierInfo = PAYTABLE[0];
+    payout = 0n;
+    multiplierBps = 0n;
+  } else if (roll < 80) {
+    // 50..79: Silver (30%)
+    tierInfo = PAYTABLE[1];
+    payout = (wager * 12n) / 10n;
+    multiplierBps = 12000n;
+  } else if (roll < 96) {
+    // 80..95: Gold (16%)
+    tierInfo = PAYTABLE[2];
+    payout = (wager * 25n) / 10n;
+    multiplierBps = 25000n;
+  } else {
+    // 96..99: Legendary (4%)
+    tierInfo = PAYTABLE[3];
+    payout = wager * 5n;
+    multiplierBps = 50000n;
+  }
+
+  return {
+    tier: tierInfo.tier,
+    tierIndex: tierInfo.tierIndex,
+    multiplier: tierInfo.multiplier,
+    multiplierBps,
+    payout,
+    roll,
+    name: tierInfo.name,
+    description: tierInfo.description,
+    won: payout > 0n,
+    randomness,
+  };
+}
+
+export function outcomeFromRandomness(randomnessHex: HexString | Hex, wager: bigint): MimicOutcome {
+  const cleanHex = randomnessHex.startsWith('0x') ? randomnessHex : `0x${randomnessHex}`;
+  const bytes = hexToBytes(cleanHex as Hex);
+  const roll = sampleRollFromRandomness(bytes);
+  return outcomeFromRoll(roll, wager, cleanHex as HexString);
+}
+
+export function decodeGameState(gameState: HexString, _wager?: bigint): MimicOutcome | null {
+  if (!gameState || gameState === '0x') return null;
+  try {
+    // Primary format: (uint8 tier, uint256 payout, bytes32 randomness, uint8 roll)
+    const [tierNum, payoutBig, randomnessRaw, rollNum] = decodeAbiParameters(
+      GAME_STATE_PARAMS,
+      gameState,
+    );
+    const tier = Number(tierNum);
+    const roll = Number(rollNum);
+    const payout = BigInt(payoutBig);
+    const randomness = (randomnessRaw as HexString) ?? '0x0';
+    const tierInfo = PAYTABLE[tier] ?? PAYTABLE[0];
+
+    return {
+      tier: tierInfo.tier,
+      tierIndex: tier,
+      multiplier: tierInfo.multiplier,
+      multiplierBps: BigInt(Math.round(tierInfo.multiplier * 10000)),
+      payout,
+      roll,
+      name: tierInfo.name,
+      description: tierInfo.description,
+      won: payout > 0n,
+      randomness,
+    };
+  } catch {
+    try {
+      // Alternative compact format: (uint8 tier, uint8 roll, uint256 payout)
+      const [tierNum, rollNum, payoutBig] = decodeAbiParameters(
+        [
+          { type: 'uint8' },
+          { type: 'uint8' },
+          { type: 'uint256' },
+        ] as const,
+        gameState,
+      );
+      const tier = Number(tierNum);
+      const roll = Number(rollNum);
+      const payout = BigInt(payoutBig);
+      const tierInfo = PAYTABLE[tier] ?? PAYTABLE[0];
+
+      return {
+        tier: tierInfo.tier,
+        tierIndex: tier,
+        multiplier: tierInfo.multiplier,
+        multiplierBps: BigInt(Math.round(tierInfo.multiplier * 10000)),
+        payout,
+        roll,
+        name: tierInfo.name,
+        description: tierInfo.description,
+        won: payout > 0n,
+        randomness: '0x0',
+      };
+    } catch {
+      return null;
+    }
+  }
+}
+
+export function outcomeFromPayout(payout: bigint, wager: bigint): MimicOutcome {
+  if (wager === 0n || payout === 0n) {
+    return outcomeFromRoll(0, wager); // Mimic
+  }
+  const ratio = (payout * 100n) / wager;
+  if (ratio >= 450n) {
+    return outcomeFromRoll(99, wager); // Legendary
+  } else if (ratio >= 200n) {
+    return outcomeFromRoll(90, wager); // Gold
+  } else {
+    return outcomeFromRoll(60, wager); // Silver
+  }
+}
+
+export function encodeGameData(): HexString {
+  // Instant game has no complex game parameters, encode empty tuple
+  return encodeAbiParameters([], []);
+}
+
+export function maxPayout(wager: bigint): bigint {
+  return wager * MAX_MULTIPLIER;
+}
+
+export function maxReservedProfit(wager: bigint): bigint {
+  const payout = maxPayout(wager);
+  return payout > wager ? payout - wager : 0n;
+}
+
+export const PHASE_SETTLED = 3;
+export const PHASE_FORFEITED = 4;
+export const PHASE_CANCELLED = 5;
+
+export function isTerminalPhase(phase: number | undefined): boolean {
+  return phase === PHASE_SETTLED || phase === PHASE_FORFEITED || phase === PHASE_CANCELLED;
+}
