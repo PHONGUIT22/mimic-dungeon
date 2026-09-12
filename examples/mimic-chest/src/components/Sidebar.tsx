@@ -20,6 +20,8 @@ export function Sidebar({
   roundStep,
   onOpenCollection,
   discoveredCount = 0,
+  unlockedPillarsCount,
+  totalUniqueSigils,
 }: {
   balance: bigint | undefined;
   decimals: number;
@@ -33,6 +35,8 @@ export function Sidebar({
   onOpenPaytable: () => void;
   onOpenCollection: () => void;
   discoveredCount?: number;
+  unlockedPillarsCount?: number;
+  totalUniqueSigils?: number;
   isDemoMode: boolean;
   onResetDemoBalance: () => void;
   maxAllowedWager?: bigint;
@@ -289,9 +293,9 @@ export function Sidebar({
             onOpenCollection();
           }}
           className="btn-util btn-util-album"
-          title={`View Tarot Compendium Album (${discoveredCount}/12 discovered)`}
+          title={`View Codex & Channeled Archive (${unlockedPillarsCount ?? discoveredCount}/12 Pillars, ${totalUniqueSigils ?? discoveredCount} Sigils)`}
         >
-          <span>🃏</span> Album ({discoveredCount}/12)
+          <span>🔯</span> Codex ({unlockedPillarsCount ?? discoveredCount}/12)
         </button>
       </div>
     </aside>

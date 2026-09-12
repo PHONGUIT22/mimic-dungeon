@@ -23,6 +23,7 @@ import { PaytableModal } from './components/PaytableModal';
 import { VerifyModal } from './components/VerifyModal';
 import { CollectionModal } from './components/CollectionModal';
 import { WinOverlay } from './components/WinOverlay';
+import { computeUnlockedPillarsCount } from './lib/proceduralNames';
 
 export type { RoundStep };
 
@@ -152,6 +153,13 @@ export function App() {
     }
     return merged;
   });
+
+  const unlockedPillarsCount = useMemo(
+    () => computeUnlockedPillarsCount(discoveredCardIds),
+    [discoveredCardIds],
+  );
+  const totalUniqueSigils = discoveredCardIds.length;
+
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<HistoryItem | null>(null);
   const [isScreenShaking, setIsScreenShaking] = useState(false);
   const [winDismissed, setWinDismissed] = useState(false);
@@ -586,7 +594,9 @@ export function App() {
             onToggleFastMode={toggleFastMode}
             onOpenPaytable={() => setPaytableOpen(true)}
             onOpenCollection={() => setCollectionOpen(true)}
-            discoveredCount={discoveredCardIds.length}
+            discoveredCount={unlockedPillarsCount}
+            unlockedPillarsCount={unlockedPillarsCount}
+            totalUniqueSigils={totalUniqueSigils}
             isDemoMode={isDemoMode}
             onResetDemoBalance={resetDemoBalance}
             maxAllowedWager={maxAllowedWager}
@@ -644,6 +654,7 @@ export function App() {
         isOpen={collectionOpen}
         onClose={() => setCollectionOpen(false)}
         discoveredCardIds={discoveredCardIds}
+        history={history}
       />
 
       <VerifyModal
