@@ -121,6 +121,14 @@ export type TarotCardDef = {
   iconType: string;
 };
 
+export type EditionBonusInfo = {
+  bonusText: string;
+  bonusType: 'add' | 'mult' | 'none';
+  bonusValue: number;
+  baseMultiplier: number;
+  finalMultiplier: number;
+};
+
 export type DisplayCard = {
   cardId: TarotCardId;
   name: string;
@@ -128,12 +136,14 @@ export type DisplayCard = {
   category: string;
   tierIndex: number;
   tier: ChestTierType;
+  baseMultiplier: number;
   multiplier: number;
   multiplierText: string;
   payout: bigint;
   subtitle: string;
   description: string;
   edition: CardEdition;
+  editionBonus?: EditionBonusInfo;
   isActualOutcome?: boolean;
   roll?: number;
   iconType: string;
@@ -280,7 +290,7 @@ export const TAROT_CATALOG: Record<TarotCardId, TarotCardDef> = {
   THE_SOUL: {
     id: 'THE_SOUL',
     name: 'The Soul',
-    roman: '∞',
+    roman: 'XXII',
     category: 'Cosmic Arcana',
     tierIndex: 3,
     tier: 'LEGENDARY',
@@ -293,7 +303,7 @@ export const TAROT_CATALOG: Record<TarotCardId, TarotCardDef> = {
   WHEEL_OF_DESTINY: {
     id: 'WHEEL_OF_DESTINY',
     name: 'Wheel of Destiny',
-    roman: '★',
+    roman: 'X',
     category: 'Cosmic Arcana',
     tierIndex: 3,
     tier: 'LEGENDARY',
@@ -340,6 +350,43 @@ export function sampleCardEdition(seed?: number | string): CardEdition {
   return 'polychrome';
 }
 
+export function computeEditionBonus(baseMultiplier: number, edition: CardEdition): EditionBonusInfo {
+  if (edition === 'foil') {
+    return {
+      bonusText: 'FOIL EDITION',
+      bonusType: 'none',
+      bonusValue: 0,
+      baseMultiplier,
+      finalMultiplier: baseMultiplier,
+    };
+  }
+  if (edition === 'holo') {
+    return {
+      bonusText: 'HOLO EDITION',
+      bonusType: 'none',
+      bonusValue: 0,
+      baseMultiplier,
+      finalMultiplier: baseMultiplier,
+    };
+  }
+  if (edition === 'polychrome') {
+    return {
+      bonusText: 'POLYCHROME EDITION',
+      bonusType: 'none',
+      bonusValue: 0,
+      baseMultiplier,
+      finalMultiplier: baseMultiplier,
+    };
+  }
+  return {
+    bonusText: '',
+    bonusType: 'none',
+    bonusValue: 0,
+    baseMultiplier,
+    finalMultiplier: baseMultiplier,
+  };
+}
+
 export function createDisplayCard(
   cardDef: TarotCardDef,
   wager: bigint,
@@ -358,6 +405,8 @@ export function createDisplayCard(
     payout = wager * 5n;
   }
 
+  const editionBonus = computeEditionBonus(cardDef.multiplier, edition);
+
   return {
     cardId: cardDef.id,
     name: cardDef.name,
@@ -365,12 +414,14 @@ export function createDisplayCard(
     category: cardDef.category,
     tierIndex: cardDef.tierIndex,
     tier: cardDef.tier,
+    baseMultiplier: cardDef.multiplier,
     multiplier: cardDef.multiplier,
     multiplierText: cardDef.multiplierText,
     payout,
-    subtitle: cardDef.subtitle,
+    subtitle: editionBonus.bonusText ? `${cardDef.subtitle} • ${editionBonus.bonusText}` : cardDef.subtitle,
     description: cardDef.description,
     edition,
+    editionBonus,
     isActualOutcome,
     roll,
     iconType: cardDef.iconType,
@@ -400,16 +451,15 @@ export function generateNearMissCards(actualOutcome: MimicOutcome, wager: bigint
   const actualTier = actualOutcome.tierIndex;
 
   if (actualTier === 0) {
-    // Player lost (Tier 0). Near-Miss psychology:
-    // Slot 1 unpicked: Guarantee Tier 2 or Tier 3 (50% chance of Tier 3 Jackpot, 50% Tier 2 Gold)
-    const highTier = Math.random() < 0.5 ? 3 : 2;
-    const highTierCards = CARDS_BY_TIER[highTier];
-    const card1 = highTierCards[Math.floor(Math.random() * highTierCards.length)];
+    // Player lost (The Void x0.0). Near-Miss psychology:
+    // Slot 1 unpicked: Guarantee Tier 3 (5.0x Mythic Jackpot - Wheel of Destiny / The World / The Soul)
+    const tier3Cards = CARDS_BY_TIER[3];
+    const card1 = tier3Cards[Math.floor(Math.random() * tier3Cards.length)];
     const edition1 = sampleCardEdition();
     dummyCards.push(createDisplayCard(card1, wager, edition1, false));
 
     // Slot 2 unpicked: Tier 1 (Silver 1.2x) or Tier 2 (Gold 2.5x)
-    const midTier = Math.random() < 0.6 ? 1 : 2;
+    const midTier = Math.random() < 0.6 ? 2 : 1;
     const midTierCards = CARDS_BY_TIER[midTier];
     const card2 = midTierCards[Math.floor(Math.random() * midTierCards.length)];
     const edition2 = sampleCardEdition();
@@ -462,6 +512,14 @@ export type MimicOutcome = {
   edition?: CardEdition;
 };
 
+export type HistoryItem = {
+  wager: bigint;
+  outcome: MimicOutcome;
+  sessionKey?: string;
+  sessionId?: string;
+  timestamp?: number;
+};
+
 // abi.encode(tier, payout, randomness, roll)
 const GAME_STATE_PARAMS = [
   { type: 'uint8' },
@@ -493,37 +551,30 @@ export function sampleRollFromRandomness(randomBytes: Uint8Array): number {
 
 export function outcomeFromRoll(roll: number, wager: bigint, randomness: HexString = '0x0'): MimicOutcome {
   let tierInfo: ChestTierInfo;
-  let payout: bigint;
-  let multiplierBps: bigint;
 
   if (roll < 50) {
     // 0..49: Mimic (50%)
     tierInfo = PAYTABLE[0];
-    payout = 0n;
-    multiplierBps = 0n;
   } else if (roll < 80) {
     // 50..79: Silver (30%)
     tierInfo = PAYTABLE[1];
-    payout = (wager * 12n) / 10n;
-    multiplierBps = 12000n;
   } else if (roll < 96) {
     // 80..95: Gold (16%)
     tierInfo = PAYTABLE[2];
-    payout = (wager * 25n) / 10n;
-    multiplierBps = 25000n;
   } else {
     // 96..99: Legendary (4%)
     tierInfo = PAYTABLE[3];
-    payout = wager * 5n;
-    multiplierBps = 50000n;
   }
 
   const card = getCardForOutcome(tierInfo.tierIndex, roll, wager, randomness);
+  const finalMultiplier = card.multiplier;
+  const payout = card.payout;
+  const multiplierBps = BigInt(Math.round(finalMultiplier * 10000));
 
   return {
     tier: tierInfo.tier,
     tierIndex: tierInfo.tierIndex,
-    multiplier: tierInfo.multiplier,
+    multiplier: finalMultiplier,
     multiplierBps,
     payout,
     roll,

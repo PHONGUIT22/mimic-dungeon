@@ -17,7 +17,7 @@ class SoundManager {
   private droneGains: GainNode[] = [];
   private filterLfo: OscillatorNode | null = null;
   private ambientTimer: number | null = null;
-  private readonly nominalBgmGain: number = 0.03; // Gentle, mystic ambient level (never piercing)
+  private readonly nominalBgmGain: number = 0.3; // Gentle, mystic ambient level (never piercing)
 
   constructor() {
     try {
@@ -563,6 +563,49 @@ class SoundManager {
     });
   }
 
+  /**
+   * Sparkling crystal chime arpeggio for Polychrome edition cards.
+   * High crystalline sine waves with rich harmonic overtones and bell resonance.
+   */
+  public playPolychromeChime() {
+    if (!this.sfxEnabled) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    this.duckBgm(2000);
+
+    // Ethereal high-crystal bell frequencies (C6, E6, G6, B6, D7, G7)
+    const notes = [1046.5, 1318.51, 1567.98, 1975.53, 2349.32, 3135.96];
+    notes.forEach((freq, i) => {
+      setTimeout(() => {
+        if (!this.ctx || !this.sfxEnabled) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const oscOvertone = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+
+        oscOvertone.type = 'triangle';
+        oscOvertone.frequency.setValueAtTime(freq * 1.5, now);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.18, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+        osc.connect(gain);
+        oscOvertone.connect(gain);
+        gain.connect(this.sfxGainNode ?? this.ctx.destination);
+
+        osc.start(now);
+        oscOvertone.start(now);
+        osc.stop(now + 0.65);
+        oscOvertone.stop(now + 0.65);
+      }, i * 65);
+    });
+  }
+
   // ============================================================================
   // BALATRO-STYLE PROCEDURAL ARCANA SYNTHESIZERS
   // ============================================================================
@@ -659,31 +702,127 @@ class SoundManager {
   }
 
   /**
-   * Rapid sequence of 5-8 ascending sine/triangle blips whose pitch rises
-   * exponentially based on payout multiplier (like the Balatro chip scoring tally).
+   * Crisp metallic bell sparkle when Foil edition triggers (+0.2x / +50 Chips).
+   * Double bell chime ting-ting! (A5 -> E6, 880Hz -> 1318.5Hz).
    */
-  public playPitchShiftTally(multiplier: number) {
+  public playFoilTing() {
+    if (!this.sfxEnabled) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    this.duckBgm(1400);
+
+    const notes = [880.0, 1318.51]; // A5, E6
+    notes.forEach((freq, i) => {
+      setTimeout(() => {
+        if (!this.ctx || !this.sfxEnabled) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.05, now + 0.02);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.24, now + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGainNode ?? this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.38);
+      }, i * 90);
+    });
+  }
+
+  /**
+   * Prismatic triple-harmonic resonance when Holo edition triggers (+0.5x / +10 Mult).
+   * Ascending bell triple ting-ting-ting! (F#5, A5, D6: 739.99Hz -> 880.0Hz -> 1174.66Hz).
+   */
+  public playHoloTing() {
     if (!this.sfxEnabled) return;
     this.initContext();
     if (!this.ctx) return;
 
     this.duckBgm(1600);
 
-    // Number of tally steps: 5 for low wins, up to 8 for max multiplier
-    const safeMult = Math.max(1, multiplier);
-    const steps = safeMult >= 5 ? 8 : safeMult >= 2.5 ? 7 : safeMult >= 1.2 ? 6 : 5;
+    const notes = [739.99, 880.0, 1174.66]; // F#5, A5, D6
+    notes.forEach((freq, i) => {
+      setTimeout(() => {
+        if (!this.ctx || !this.sfxEnabled) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const overtone = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
 
-    // Base pitch scales with multiplier: higher tier = higher starting & ceiling frequency
-    const baseFreq = 340 + Math.min(200, safeMult * 35);
-    // Exponential pitch growth factor
-    const pitchFactor = 1.08 + Math.min(0.08, safeMult * 0.015);
-    const stepIntervalMs = safeMult >= 5 ? 45 : 55;
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now);
+
+        overtone.type = 'sine';
+        overtone.frequency.setValueAtTime(freq * 2, now);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.22, now + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+        osc.connect(gain);
+        overtone.connect(gain);
+        gain.connect(this.sfxGainNode ?? this.ctx.destination);
+
+        osc.start(now);
+        overtone.start(now);
+        osc.stop(now + 0.48);
+        overtone.stop(now + 0.48);
+      }, i * 85);
+    });
+  }
+
+  /**
+   * Rapid sequence of ascending sine/triangle blips whose pitch rises
+   * exponentially (like the Balatro chip scoring tally).
+   */
+  public playPitchShiftTally(
+    toMultiplier: number,
+    onStep?: (stepIndex: number, currentMult: number, isFinal: boolean) => void,
+    fastMode: boolean = false,
+    fromMultiplier: number = 1.0,
+  ) {
+    const startVal = Math.max(0, fromMultiplier);
+    const endVal = Math.max(0, toMultiplier);
+    const diff = Math.abs(endVal - startVal);
+    const steps = endVal >= 5 ? 8 : endVal >= 2.5 ? 7 : diff >= 0.5 ? 6 : 5;
+    const baseFreq = 340 + Math.min(200, endVal * 35);
+    const pitchFactor = 1.08 + Math.min(0.08, endVal * 0.015);
+    const stepIntervalMs = fastMode ? (endVal >= 5 ? 20 : 25) : (endVal >= 5 ? 45 : 55);
+
+    if (!this.sfxEnabled) {
+      for (let i = 0; i < steps; i++) {
+        const isFinal = i === steps - 1;
+        const progress = (i + 1) / steps;
+        const currentMult = isFinal ? endVal : startVal + (endVal - startVal) * Math.pow(progress, 1.2);
+        setTimeout(() => {
+          onStep?.(i, Math.round(currentMult * 100) / 100, isFinal);
+        }, i * stepIntervalMs);
+      }
+      return;
+    }
+
+    this.initContext();
+    if (!this.ctx) return;
+
+    this.duckBgm(1600);
 
     for (let i = 0; i < steps; i++) {
       const delayMs = i * stepIntervalMs;
       const isFinal = i === steps - 1;
+      const progress = (i + 1) / steps;
+      const currentMult = isFinal ? endVal : startVal + (endVal - startVal) * Math.pow(progress, 1.2);
 
       setTimeout(() => {
+        onStep?.(i, Math.round(currentMult * 100) / 100, isFinal);
+
         if (!this.ctx || !this.sfxEnabled) return;
         const t = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
@@ -711,7 +850,7 @@ class SoundManager {
         osc.stop(t + duration + 0.02);
 
         // On final step for big wins (>= 2.5x), add a crystal shimmer overtone
-        if (isFinal && safeMult >= 2.5) {
+        if (isFinal && endVal >= 2.5) {
           const oscOvertone = this.ctx.createOscillator();
           const gainOvertone = this.ctx.createGain();
           oscOvertone.type = 'sine';
