@@ -275,29 +275,30 @@ export function App() {
     });
   }, [snapshot, round?.sessionKey, round?.sessionId, round?.step, round?.wager, round?.chosenIndex]);
 
-  // Fallback auto-pick: automatically pick index 1 (center) after 1200ms (or 250ms in Fast Mode)
+  // AFK watchdog: in normal mode, give player 30 seconds to deliberate.
+  // In Fast Mode, auto-pick index 1 (center) after 300ms if not picked.
   useEffect(() => {
     if (!round || round.step !== 'awaiting_pick' || round.chosenIndex !== undefined) {
       return;
     }
 
-    const autoTimer = setTimeout(
+    const afkTimer = setTimeout(
       () => {
-        handleCardPick(1); // Auto-pick center card
+        handleCardPick(1); // Auto-pick center card on AFK or Fast Mode
       },
-      fastMode ? 250 : 1200,
+      fastMode ? 300 : 30000,
     );
 
-    return () => clearTimeout(autoTimer);
+    return () => clearTimeout(afkTimer);
   }, [round?.step, round?.chosenIndex, fastMode, handleCardPick]);
 
-  // Stuck watchdog: unfreeze if session hangs > 20s
+  // Stuck watchdog: unfreeze if VRF / session opening hangs > 25s
   useEffect(() => {
-    if (!round || (round.step !== 'opening_session' && round.step !== 'awaiting_pick')) return;
+    if (!round || round.step !== 'opening_session') return;
     const timer = setTimeout(() => {
       setError('Session timed out waiting for randomness fulfillment.');
       setRound(null);
-    }, 20000);
+    }, 25000);
     return () => clearTimeout(timer);
   }, [round?.sessionKey, round?.step]);
 

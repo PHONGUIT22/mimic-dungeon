@@ -698,6 +698,8 @@ h1, h2, h3, h4, .font-heading {
   width: 100%;
   max-width: 660px;
   margin: 10px auto 4px;
+  perspective: 1000px;
+  -webkit-perspective: 1000px;
 }
 
 @media (max-width: 640px) {
@@ -710,6 +712,7 @@ h1, h2, h3, h4, .font-heading {
   width: 170px;
   height: 260px;
   perspective: 1000px;
+  -webkit-perspective: 1000px;
   position: relative;
   transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -736,6 +739,7 @@ h1, h2, h3, h4, .font-heading {
   width: 220px;
   height: 340px;
   perspective: 1200px;
+  -webkit-perspective: 1200px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -746,7 +750,8 @@ h1, h2, h3, h4, .font-heading {
   width: 100%;
   height: 100%;
   position: relative;
-  transform-style: preserve-3d;
+  transform-style: preserve-3d !important;
+  -webkit-transform-style: preserve-3d !important;
   transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
   user-select: none;
 }
@@ -780,11 +785,11 @@ h1, h2, h3, h4, .font-heading {
 @keyframes cardPulseGlow {
   0% {
     filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.5));
-    transform: perspective(1000px) translateZ(10px) scale(1.02);
+    transform: translateZ(10px) scale(1.02);
   }
   100% {
     filter: drop-shadow(0 0 24px rgba(245, 158, 11, 0.9));
-    transform: perspective(1000px) translateZ(18px) scale(1.04);
+    transform: translateZ(18px) scale(1.04);
   }
 }
 
@@ -805,8 +810,10 @@ h1, h2, h3, h4, .font-heading {
   top: 0;
   left: 0;
   border-radius: 12px;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 2px 10px rgba(0, 0, 0, 0.4);
   overflow: hidden;
   user-select: none;
@@ -818,6 +825,7 @@ h1, h2, h3, h4, .font-heading {
 
 .card-back {
   transform: rotateY(0deg);
+  -webkit-transform: rotateY(0deg);
   background: radial-gradient(circle at 50% 50%, #151d2a 0%, #0a0e16 85%);
   border: 2px solid #b45309;
   padding: 10px;
@@ -899,6 +907,7 @@ h1, h2, h3, h4, .font-heading {
 
 .card-front {
   transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg);
   display: flex;
   flex-direction: column;
   justify-content: space-between;

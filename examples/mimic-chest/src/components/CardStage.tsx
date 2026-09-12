@@ -162,23 +162,7 @@ export function CardStage({
     [spreadState, effectiveSelectedIdx, onCardPick],
   );
 
-  // 3. Fallback auto-pick if awaiting_pick and player hasn't picked after timeout
-  useEffect(() => {
-    if (
-      (step === 'awaiting_pick' || spreadState === 'awaiting_pick') &&
-      effectiveSelectedIdx === null
-    ) {
-      const autoTimer = setTimeout(
-        () => {
-          handleCardClick(1); // Auto-pick center card
-        },
-        fastMode ? 250 : 1200,
-      );
-      return () => clearTimeout(autoTimer);
-    }
-  }, [step, spreadState, effectiveSelectedIdx, fastMode, handleCardClick]);
-
-  // 4. Reveal sequence once a card is selected and outcome is ready
+  // 3. Reveal sequence once a card is selected and outcome is ready
   useEffect(() => {
     const activeIdx = chosenIndex !== null && chosenIndex !== undefined ? chosenIndex : selectedIdx;
     if (activeIdx === null || !outcome) return;
@@ -395,22 +379,26 @@ export function CardStage({
           {[0, 1, 2].map(slotIndex => {
             const isFlipped = flipped[slotIndex];
             const isPicked = activePickIdx === slotIndex;
-            const cardData = cards[slotIndex];
+            const cardData =
+              cards[slotIndex] ||
+              (isPicked && outcome
+                ? outcome.card || getCardForOutcome(outcome.tierIndex, outcome.roll, wager, outcome.randomness)
+                : null);
             const isAwaiting = spreadState === 'awaiting_pick';
             const isDealing = spreadState === 'dealing';
 
-            // Calculate tilt transform
+            // Calculate tilt transform without breaking preserve-3d
             const isTilted = tilt.index === slotIndex;
             let transformStyle = '';
 
             if (isFlipped) {
               transformStyle = isPicked
-                ? 'perspective(1000px) rotateY(180deg) translateZ(12px) scale(1.03)'
-                : 'perspective(1000px) rotateY(180deg) scale(0.96)';
+                ? 'rotateY(180deg) scale(1.04)'
+                : 'rotateY(180deg) scale(0.96)';
             } else if (isTilted && isAwaiting) {
-              transformStyle = `perspective(1000px) rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg) translateZ(24px) scale(1.05)`;
+              transformStyle = `rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg) translateY(-8px) scale(1.04)`;
             } else if (isAwaiting) {
-              transformStyle = 'perspective(1000px) translateZ(6px)';
+              transformStyle = 'rotateY(0deg)';
             }
 
             return (
