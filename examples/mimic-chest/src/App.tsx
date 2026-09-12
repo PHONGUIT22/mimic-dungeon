@@ -211,6 +211,19 @@ export function App() {
     return () => clearTimeout(timer);
   }, [round]);
 
+  // Consecutive win streak tracker (Rune Resonance)
+  const currentStreak = useMemo(() => {
+    let count = 0;
+    for (const item of history) {
+      if (item.outcome.won) {
+        count++;
+      } else {
+        break;
+      }
+    }
+    return count;
+  }, [history]);
+
   // Host reveal outcome synchronization & animation completion
   const hostApiRef = useRef(hostApi);
   hostApiRef.current = hostApi;
@@ -219,8 +232,8 @@ export function App() {
     if (!round || !round.outcome) return;
     if (round.status !== 'landing') return;
 
-    // Chest reveal celebration: 1.2s in normal mode, 300ms in fast mode
-    const animDuration = fastMode ? 300 : 1200;
+    // Card reveal celebration: 1.5s in normal mode (to allow 400ms near-miss flip), 450ms in fast mode
+    const animDuration = fastMode ? 450 : 1500;
 
     const animTimer = setTimeout(() => {
       setRound(current =>
@@ -358,7 +371,9 @@ export function App() {
             <CardStage
               state={animationState}
               outcome={round?.outcome ?? null}
+              wager={round?.wager ?? 0n}
               fastMode={fastMode}
+              streak={currentStreak}
             />
 
             {/* Live History Ticker Strip */}
