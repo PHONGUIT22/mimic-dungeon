@@ -723,10 +723,12 @@ h1, h2, h3, h4, .font-heading {
 
 .card-slot-3d.slot-awaiting {
   cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.25s ease;
 }
 
 .card-slot-3d.slot-awaiting:hover {
-  filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.45));
+  filter: drop-shadow(0 0 18px rgba(245, 158, 11, 0.65));
+  transform: translateY(-5px);
 }
 
 /* Legacy single card scene fallback */

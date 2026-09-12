@@ -162,22 +162,21 @@ export function CardStage({
     [spreadState, effectiveSelectedIdx, onCardPick],
   );
 
-  // 3. Fallback auto-pick if outcome is settled but player hasn't picked after delay
+  // 3. Fallback auto-pick if awaiting_pick and player hasn't picked after timeout
   useEffect(() => {
     if (
-      (step === 'revealing' || state === 'revealed' || outcome !== null) &&
-      spreadState === 'awaiting_pick' &&
+      (step === 'awaiting_pick' || spreadState === 'awaiting_pick') &&
       effectiveSelectedIdx === null
     ) {
       const autoTimer = setTimeout(
         () => {
           handleCardClick(1); // Auto-pick center card
         },
-        fastMode ? 80 : 300,
+        fastMode ? 250 : 1200,
       );
       return () => clearTimeout(autoTimer);
     }
-  }, [step, state, outcome, spreadState, effectiveSelectedIdx, fastMode, handleCardClick]);
+  }, [step, spreadState, effectiveSelectedIdx, fastMode, handleCardClick]);
 
   // 4. Reveal sequence once a card is selected and outcome is ready
   useEffect(() => {
@@ -240,7 +239,7 @@ export function CardStage({
       spawnParticles(outcome.tierIndex, canvas.width * xPercent, canvas.height * 0.44);
     }
 
-    // STEP B: Flip remaining 2 near-miss cards after 400ms (or 150ms in fastMode)
+    // STEP B: Flip remaining 2 near-miss cards after 350ms (or 150ms in fastMode)
     const nearMissTimer = setTimeout(
       () => {
         setSpreadState('near_miss');
@@ -258,12 +257,12 @@ export function CardStage({
           () => {
             setSpreadState('done');
           },
-          fastMode ? 200 : 600,
+          fastMode ? 150 : 500,
         );
 
         return () => clearTimeout(doneTimer);
       },
-      fastMode ? 150 : 400,
+      fastMode ? 150 : 350,
     );
 
     return () => clearTimeout(nearMissTimer);
@@ -426,8 +425,8 @@ export function CardStage({
                   className={`card-3d ${isFlipped ? 'flipped' : ''} ${
                     fastMode ? 'fast-flip' : ''
                   } ${isDealing ? 'card-dealing' : ''} ${isPicked ? 'card-picked' : ''} ${
-                    isPicked && !isFlipped ? 'card-locked-in' : ''
-                  } ${isFlipped && !isPicked ? 'card-unpicked' : ''}`}
+                    isFlipped && !isPicked ? 'card-unpicked' : ''
+                  }`}
                   style={{
                     transform: transformStyle || undefined,
                     animationDelay: `${slotIndex * 110}ms`,
@@ -452,16 +451,10 @@ export function CardStage({
                       </div>
 
                       <div className="card-back-title">
-                        {isPicked && !isFlipped ? 'LOCKED IN' : isAwaiting ? 'PICK CARD' : 'ARCANA'}
+                        ARCANA
                       </div>
                       <div className="card-back-sub">
-                        {isPicked && !isFlipped
-                          ? 'AWAITING FATE'
-                          : slotIndex === 0
-                            ? 'LEFT'
-                            : slotIndex === 1
-                              ? 'CENTER'
-                              : 'RIGHT'}
+                        TAROT
                       </div>
                     </div>
                   </div>
@@ -522,7 +515,7 @@ export function CardStage({
           {spreadState === 'awaiting_pick' && (
             <div className="awaiting-pick-prompt">
               <span className="prompt-dot" />
-              <span className="prompt-text">CHOOSE 1 OF 3 DESTINY CARDS</span>
+              <span className="prompt-text">CHOOSE YOUR CARD</span>
             </div>
           )}
 

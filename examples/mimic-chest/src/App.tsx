@@ -145,23 +145,49 @@ export function App() {
     return computeMaxWager(snapshot, { maxMultiplierX: 5 });
   }, [snapshot]);
 
+  // Ref to cache resolved VRF outcome across renders and asynchronous events
+  const resolvedOutcomeRef = useRef<{
+    sessionKey: string;
+    sessionId: string;
+    outcome: MimicOutcome;
+    payout: bigint;
+  } | null>(null);
+
+  // Snapshot ref to inspect latest snapshot synchronously
+  const snapshotRef = useRef(snapshot);
+  snapshotRef.current = snapshot;
+
   // Handle card pick by player during awaiting_pick phase
   const handleCardPick = useCallback((index: number) => {
     setRound(current => {
-      if (!current || current.step !== 'awaiting_pick' || current.chosenIndex !== undefined) {
+      if (!current || (current.step !== 'awaiting_pick' && current.step !== 'opening_session')) {
         return current;
       }
+      if (current.chosenIndex !== undefined) return current;
 
-      // If VRF outcome was already received from snapshot, transition to 'revealing' immediately
-      if (current.outcome) {
+      // Check if resolvedOutcome is already available from ref or current state
+      const cached = resolvedOutcomeRef.current;
+      const hasOutcome =
+        (cached && cached.sessionKey === current.sessionKey)
+          ? cached
+          : current.outcome
+            ? { outcome: current.outcome, payout: current.payout ?? 0n, sessionId: current.sessionId ?? '' }
+            : null;
+
+      if (hasOutcome) {
+        // 95%+ of the time on local simulator: VRF is already resolved!
+        // Set chosenIndex and IMMEDIATELY transition to 'revealing'
         return {
           ...current,
           chosenIndex: index,
+          outcome: hasOutcome.outcome,
+          payout: hasOutcome.payout,
+          sessionId: hasOutcome.sessionId || current.sessionId,
           step: 'revealing',
         };
       }
 
-      // If VRF outcome is not yet resolved, lock the chosen index and wait in 'awaiting_pick'
+      // If VRF hasn't resolved yet: lock chosen index and wait for snapshot watcher
       return {
         ...current,
         chosenIndex: index,
@@ -174,7 +200,9 @@ export function App() {
     if (!round || !snapshot) return;
     if (round.step !== 'opening_session' && round.step !== 'awaiting_pick') return;
 
-    const row = snapshot.sessions.items.find(item => item.sessionKey === round.sessionKey);
+    const row = snapshot.sessions.items.find(
+      item => item.sessionKey === round.sessionKey || (round.sessionId && item.sessionId === round.sessionId),
+    );
     if (!row || !(row.isSettled || isTerminalPhase(row.phase))) return;
 
     if (row.phase !== undefined && row.phase !== PHASE_SETTLED && !row.raw?.gameState) {
@@ -214,36 +242,42 @@ export function App() {
 
     const rowPayout = row.payout !== undefined ? BigInt(row.payout) : outcome.payout;
 
+    // Cache to ref immediately
+    resolvedOutcomeRef.current = {
+      sessionKey: round.sessionKey,
+      sessionId: row.sessionId,
+      outcome,
+      payout: rowPayout,
+    };
+
     setRound(current => {
       if (!current || current.sessionKey !== round.sessionKey) return current;
 
-      // If player has already picked a card, transition to 'revealing' now!
-      // If player hasn't picked yet, stay in 'awaiting_pick' with outcome ready
-      const nextStep: RoundStep =
-        current.chosenIndex !== undefined
-          ? 'revealing'
-          : current.step === 'opening_session'
-            ? 'awaiting_pick'
-            : current.step;
+      // If player has already picked a card, transition to 'revealing' immediately!
+      if (current.chosenIndex !== undefined && current.step !== 'settled') {
+        return {
+          ...current,
+          sessionId: row.sessionId,
+          outcome,
+          payout: rowPayout,
+          step: 'revealing',
+        };
+      }
 
+      // If player has not picked yet, attach outcome and ensure awaiting_pick is set
       return {
         ...current,
         sessionId: row.sessionId,
         outcome,
         payout: rowPayout,
-        step: nextStep,
+        step: current.step === 'opening_session' ? 'awaiting_pick' : current.step,
       };
     });
-  }, [snapshot, round?.sessionKey, round?.step, round?.wager]);
+  }, [snapshot, round?.sessionKey, round?.sessionId, round?.step, round?.wager, round?.chosenIndex]);
 
-  // Fallback auto-pick if outcome is settled from VRF and player is idle
+  // Fallback auto-pick: automatically pick index 1 (center) after 1200ms (or 250ms in Fast Mode)
   useEffect(() => {
-    if (
-      !round ||
-      round.step !== 'awaiting_pick' ||
-      !round.outcome ||
-      round.chosenIndex !== undefined
-    ) {
+    if (!round || round.step !== 'awaiting_pick' || round.chosenIndex !== undefined) {
       return;
     }
 
@@ -251,11 +285,11 @@ export function App() {
       () => {
         handleCardPick(1); // Auto-pick center card
       },
-      fastMode ? 250 : 8000,
+      fastMode ? 250 : 1200,
     );
 
     return () => clearTimeout(autoTimer);
-  }, [round?.step, round?.outcome, round?.chosenIndex, fastMode, handleCardPick]);
+  }, [round?.step, round?.chosenIndex, fastMode, handleCardPick]);
 
   // Stuck watchdog: unfreeze if session hangs > 20s
   useEffect(() => {
@@ -287,8 +321,8 @@ export function App() {
   useEffect(() => {
     if (!round || round.step !== 'revealing' || !round.outcome) return;
 
-    // Card reveal celebration: 1.4s in normal mode (to allow 400ms near-miss flip + celebration), 450ms in fast mode
-    const animDuration = fastMode ? 450 : 1400;
+    // Card reveal animation: 1200ms in normal mode (350ms near-miss + tally), 400ms in fast mode
+    const animDuration = fastMode ? 400 : 1200;
 
     const animTimer = setTimeout(() => {
       // 1. MANDATORY: revealOutcome on hostApi to credit guest balance
@@ -324,6 +358,7 @@ export function App() {
     if (!hostApi) return;
     setError(null);
     setWinDismissed(false);
+    resolvedOutcomeRef.current = null;
 
     let parsed: bigint;
     try {
@@ -352,17 +387,77 @@ export function App() {
         gameData: encodeGameData(),
       });
 
-      // When openSession succeeds and VRF starts resolving, enter awaiting_pick
-      setRound(current =>
-        current?.sessionKey === pendingKey
-          ? { ...current, sessionKey, step: 'awaiting_pick' }
-          : current,
-      );
+      // When openSession succeeds, transition to awaiting_pick (or revealing if already resolved and picked)
+      setRound(current => {
+        if (!current) return null;
+
+        // Check if matching row is already present in current snapshot
+        const matchingRow = snapshotRef.current?.sessions.items.find(
+          item => item.sessionKey === sessionKey,
+        );
+
+        let outcome: MimicOutcome | null = null;
+        let rowPayout = 0n;
+        if (matchingRow && (matchingRow.isSettled || isTerminalPhase(matchingRow.phase))) {
+          if (matchingRow.raw?.gameState && matchingRow.raw.gameState !== '0x') {
+            try {
+              outcome = decodeGameState(matchingRow.raw.gameState as `0x${string}`, parsed);
+            } catch {
+              // ignore
+            }
+          }
+          if (!outcome && matchingRow.raw?.randomness && matchingRow.raw.randomness !== '0x') {
+            try {
+              outcome = outcomeFromRandomness(matchingRow.raw.randomness as `0x${string}`, parsed);
+            } catch {
+              // ignore
+            }
+          }
+          if (!outcome && matchingRow.payout !== undefined) {
+            try {
+              outcome = outcomeFromPayout(BigInt(matchingRow.payout), parsed);
+            } catch {
+              // ignore
+            }
+          }
+          if (outcome) {
+            rowPayout = matchingRow.payout !== undefined ? BigInt(matchingRow.payout) : outcome.payout;
+            resolvedOutcomeRef.current = {
+              sessionKey,
+              sessionId: matchingRow.sessionId,
+              outcome,
+              payout: rowPayout,
+            };
+          }
+        }
+
+        const effectiveOutcome = outcome || current.outcome;
+        const effectivePayout = outcome ? rowPayout : current.payout;
+        const effectiveSessionId = matchingRow?.sessionId || current.sessionId;
+
+        return {
+          ...current,
+          sessionKey,
+          outcome: effectiveOutcome,
+          payout: effectivePayout,
+          sessionId: effectiveSessionId,
+          step: current.chosenIndex !== undefined && effectiveOutcome ? 'revealing' : 'awaiting_pick',
+        };
+      });
     } catch (cause) {
       setRound(null);
       setError(cause instanceof Error ? cause.message : 'Failed to draw fate card session.');
     }
   }, [hostApi, wagerInput, decimals, balance]);
+
+  // Primary action button handler (picks center card if awaiting_pick, otherwise opens session)
+  const handleActionClick = useCallback(() => {
+    if (round?.step === 'awaiting_pick') {
+      handleCardPick(1);
+      return;
+    }
+    handleOpenChest();
+  }, [round?.step, handleCardPick, handleOpenChest]);
 
   const isBusy = round !== null && round.step !== 'settled';
 
@@ -403,7 +498,7 @@ export function App() {
             symbol={symbol}
             wagerInput={wagerInput}
             onWagerChange={setWagerInput}
-            onOpenChest={handleOpenChest}
+            onOpenChest={handleActionClick}
             disabled={isBusy}
             fastMode={fastMode}
             onToggleFastMode={toggleFastMode}

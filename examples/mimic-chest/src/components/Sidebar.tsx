@@ -228,13 +228,13 @@ export function Sidebar({
           sound.playClick();
           onOpenChest();
         }}
-        disabled={disabled || !parsedWager || isInsufficient}
+        disabled={roundStep === 'awaiting_pick' ? false : (disabled || !parsedWager || isInsufficient)}
         className="btn-open-chest"
       >
         {roundStep === 'opening_session'
           ? 'DEALING...'
           : roundStep === 'awaiting_pick'
-            ? 'PICK A CARD...'
+            ? 'PICK CENTER CARD'
             : roundStep === 'revealing'
               ? 'REVEALING...'
               : 'DRAW CARD'}
