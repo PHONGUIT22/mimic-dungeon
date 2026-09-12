@@ -8,6 +8,7 @@ import {
   generateNearMissCards,
 } from '../lib/mimic';
 import { sound } from '../lib/audio';
+import { ProceduralSigil } from './ProceduralSigil';
 
 export type CardAnimationState = 'idle' | 'opening' | 'revealed';
 
@@ -610,7 +611,13 @@ export function CardStage({
                     {/* Center Artwork */}
                     <div className="card-artwork-box">
                       <div className="card-art-wrap">
-                        {cardData && <CardArt iconType={cardData.iconType} tier={cardData.tierIndex} />}
+                        {cardData && (
+                          <ProceduralSigil
+                            seed={cardData.sigilSeed ?? cardData.roll ?? slotIndex}
+                            tier={cardData.tierIndex}
+                            className="card-svg"
+                          />
+                        )}
                       </div>
                     </div>
 
@@ -706,7 +713,19 @@ export function CardStage({
 /**
  * Procedural SVG Artwork for the 12 distinct Tarot Cards
  */
-export function CardArt({ iconType, tier }: { iconType: string; tier: number }) {
+export function CardArt({
+  iconType,
+  tier,
+  seed,
+}: {
+  iconType: string;
+  tier: number;
+  seed?: number | string;
+}) {
+  if (iconType === 'sigil' || seed !== undefined) {
+    return <ProceduralSigil seed={seed ?? iconType} tier={tier} className="card-svg" />;
+  }
+
   const strokeColor =
     tier === 3 ? '#e879f9' : tier === 2 ? '#facc15' : tier === 1 ? '#cbd5e1' : '#f87171';
   const accentColor =
