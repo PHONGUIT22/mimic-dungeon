@@ -5,12 +5,12 @@
   "defaultLocale": "en",
   "locales": {
     "en": {
-      "name": "Mimic Dungeon",
-      "description": "Brave the perilous dungeon! Choose your wager and open the mystery chest. Beware the deadly Mimic (x0), or claim Silver (x1.2), Gold (x2.5), and Legendary Relics (x5.0) with a certified 96.00% RTP."
+      "name": "Arcana Fate",
+      "description": "Unveil the sacred mysteries! Wager and draw ancient sigil cards: avoid The Void (x0), claim Silver Runes (x1.2), Golden Sun (x2.5), or manifest the legendary Destiny (x5.0) with certified 96.00% Provably Fair RTP."
     },
     "vi": {
-      "name": "Hầm Ngục Mimic",
-      "description": "Thử thách lòng dũng cảm trong hầm ngục! Đặt cược và mở rương kho báu: cẩn thận Quái vật Mimic (x0), nhận Rương Bạc (x1.2), Rương Vàng (x2.5) hoặc Bảo vật Huyền thoại (x5.0) với RTP 96.00% chuẩn xác."
+      "name": "Arcana Fate",
+      "description": "Khai mở huyền bí cổ xưa! Đặt cược và rút ấn chú ma thuật: né tránh The Void (x0), nhận Ấn Bạc (x1.2), Thái Dương Vàng (x2.5) hoặc Đại Vận Mệnh (x5.0) với RTP 96.00% minh bạch."
     }
   },
   "presentation": {

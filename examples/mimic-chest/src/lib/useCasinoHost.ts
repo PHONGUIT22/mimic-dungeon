@@ -79,8 +79,8 @@ export function useCasinoHost(): UseCasinoHostReturn {
           defaultLocale: 'en',
           locales: {
             en: {
-              name: 'Mimic Dungeon',
-              description: 'Instant mystery chest casino game with 96.00% RTP.',
+              name: 'Arcana Fate',
+              description: 'Instant sacred sigils & mystic cards casino game with 96.00% RTP.',
             },
           },
         },
