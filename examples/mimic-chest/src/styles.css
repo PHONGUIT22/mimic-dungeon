@@ -573,23 +573,30 @@ h1, h2, h3, h4, .font-heading {
   font-weight: bold;
 }
 
-/* Dark, textured, flat canvas background */
+/* ==========================================================================
+   CARD STAGE & 3D CARD FLIP ARCHITECTURE
+   ========================================================================== */
+
+.card-stage-container,
 .chest-stage-container {
   width: 100%;
   flex: 1;
-  min-height: 420px;
+  min-height: 440px;
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: #0f141c;
-  background-image: radial-gradient(rgba(33, 45, 69, 0.6) 1px, transparent 1px);
-  background-size: 18px 18px;
-  padding: 16px;
+  background-color: #0d1219;
+  background-image: 
+    radial-gradient(circle at 50% 35%, rgba(30, 41, 59, 0.45) 0%, transparent 70%),
+    radial-gradient(rgba(33, 45, 69, 0.5) 1px, transparent 1px);
+  background-size: 100% 100%, 18px 18px;
+  padding: 18px 16px;
 }
 
+.card-stage-canvas,
 .chest-stage-canvas {
   position: absolute;
   top: 0;
@@ -614,27 +621,367 @@ h1, h2, h3, h4, .font-heading {
   align-items: center;
 }
 
-.chest-graphic-box {
+/* 3D Perspective Viewport */
+.card-scene {
+  width: 220px;
+  height: 340px;
+  perspective: 1200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* The Card with 3D Flip */
+.card-3d {
+  width: 220px;
+  height: 340px;
   position: relative;
-  width: 240px;
-  height: 200px;
+  transform-style: preserve-3d;
+  transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+  cursor: default;
+}
+
+.card-3d.fast-flip {
+  transition: transform 0.28s ease-out;
+}
+
+.card-3d.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-3d.card-drawing {
+  animation: cardHoverAndVibrate 0.2s infinite alternate ease-in-out;
+}
+
+/* Card Faces Base */
+.card-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  border-radius: 12px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 2px 10px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ==========================================================================
+   CARD BACK (MẶT LƯNG: VÒNG TRÒN MA THUẬT VÀNG CỔ)
+   ========================================================================== */
+
+.card-back {
+  transform: rotateY(0deg);
+  background: radial-gradient(circle at 50% 50%, #151d2a 0%, #0a0e16 85%);
+  border: 2px solid #b45309;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 
+    0 16px 36px rgba(0, 0, 0, 0.7),
+    inset 0 0 20px rgba(180, 83, 9, 0.25);
+}
+
+.card-back-border {
+  flex: 1;
+  border: 1.5px solid #d97706;
+  border-radius: 6px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 8px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.card-corner {
+  position: absolute;
+  font-size: 11px;
+  color: #f59e0b;
+  line-height: 1;
+}
+
+.corner-tl { top: 4px; left: 6px; }
+.corner-tr { top: 4px; right: 6px; }
+.corner-bl { bottom: 4px; left: 6px; }
+.corner-br { bottom: 4px; right: 6px; }
+
+.card-back-mandala {
+  width: 140px;
+  height: 140px;
+  margin: auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: mandalaFloat 4s ease-in-out infinite;
+}
+
+.mandala-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.4));
+}
+
+.card-drawing .mandala-svg {
+  animation: mandalaSpin 3s linear infinite;
+  filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.85));
+}
+
+.card-back-title {
+  font-family: 'Rubik', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #fcd34d;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.card-back-sub {
+  font-family: monospace;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #92400e;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   CARD FRONT (MẶT TRƯỚC: 4 BẬC THẦN THOẠI)
+   ========================================================================== */
+
+.card-front {
+  transform: rotateY(180deg);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px;
+  position: relative;
+}
+
+/* Header Bar inside card */
+.card-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding-bottom: 6px;
+  z-index: 2;
+}
+
+.card-roman {
+  font-family: 'Rubik', monospace;
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.card-category {
+  font-family: monospace;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.card-multiplier-pill {
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Center Artwork Box */
+.card-artwork-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  z-index: 2;
+}
+
+.card-art-wrap {
+  width: 140px;
+  height: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.chest-svg {
-  width: 220px;
-  height: 185px;
+.card-svg {
+  width: 100%;
+  height: 100%;
   display: block;
 }
 
+/* Footer info inside card */
+.card-footer-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 6px;
+  z-index: 2;
+}
+
+.card-main-title {
+  font-family: 'Rubik', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.card-sub-desc {
+  font-family: monospace;
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* --------------------------------------------------------------------------
+   TIER-SPECIFIC CARD DESIGNS
+   -------------------------------------------------------------------------- */
+
+/* TIER 0: The Void (Cursed Card x0.0) */
+.card-tier-0 {
+  background: radial-gradient(circle at 50% 35%, #240938 0%, #0c0214 85%);
+  border: 2px solid #ef4444;
+  box-shadow: 
+    0 16px 36px rgba(0, 0, 0, 0.7),
+    inset 0 0 24px rgba(239, 68, 68, 0.25);
+}
+
+.card-tier-0 .card-multiplier-pill {
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.card-tier-0 .card-main-title {
+  color: #fca5a5;
+}
+
+.card-tier-0 .card-sub-desc {
+  color: #ef4444;
+}
+
+/* TIER 1: Silver Rune (x1.2) */
+.card-tier-1 {
+  background: radial-gradient(circle at 50% 35%, #1e293b 0%, #090d16 85%);
+  border: 2px solid #cbd5e1;
+  box-shadow: 
+    0 16px 36px rgba(0, 0, 0, 0.7),
+    inset 0 0 20px rgba(203, 213, 225, 0.2);
+}
+
+.card-tier-1 .card-multiplier-pill {
+  color: #e2e8f0;
+  border-color: rgba(203, 213, 225, 0.4);
+}
+
+.card-tier-1 .card-main-title {
+  color: #f1f5f9;
+}
+
+.card-tier-1 .card-sub-desc {
+  color: #38bdf8;
+}
+
+/* TIER 2: Golden Sun (x2.5) */
+.card-tier-2 {
+  background: radial-gradient(circle at 50% 35%, #78350f 0%, #170902 85%);
+  border: 2px solid #f59e0b;
+  box-shadow: 
+    0 16px 36px rgba(0, 0, 0, 0.7),
+    inset 0 0 24px rgba(245, 158, 11, 0.3);
+}
+
+.card-tier-2 .card-multiplier-pill {
+  color: #fef08a;
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.card-tier-2 .card-main-title {
+  color: #fde047;
+}
+
+.card-tier-2 .card-sub-desc {
+  color: #fbbf24;
+}
+
+/* TIER 3: Wheel of Destiny (x5.0 Mythic Jackpot with Hologram Foil) */
+.card-tier-3 {
+  background: radial-gradient(circle at 50% 35%, #581c87 0%, #150529 85%);
+  border: 2px solid #c084fc;
+  box-shadow: 
+    0 16px 40px rgba(0, 0, 0, 0.8),
+    0 0 24px rgba(192, 132, 252, 0.4),
+    inset 0 0 24px rgba(192, 132, 252, 0.35);
+}
+
+.card-tier-3 .card-multiplier-pill {
+  color: #e879f9;
+  background: rgba(147, 51, 234, 0.35);
+  border-color: rgba(192, 132, 252, 0.6);
+}
+
+.card-tier-3 .card-main-title {
+  color: #f5d0fe;
+  text-shadow: 0 0 10px rgba(232, 121, 249, 0.7);
+}
+
+.card-tier-3 .card-sub-desc {
+  color: #f472b6;
+  font-weight: 800;
+}
+
+/* Hologram Rainbow Foil Sheen */
+.card-tier-3 .card-foil-sheen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(244, 114, 182, 0.25) 25%,
+    rgba(168, 85, 247, 0.25) 50%,
+    rgba(56, 189, 248, 0.25) 75%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 250% 250%;
+  animation: foilShimmer 3.5s ease infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Card Pedestal / Magic Summoning Ground */
+.card-pedestal,
 .chest-pedestal {
-  width: 220px;
-  height: 14px;
+  width: 190px;
+  height: 16px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.45);
-  margin-top: 2px;
+  background: radial-gradient(ellipse at center, rgba(245, 158, 11, 0.22) 0%, rgba(0, 0, 0, 0.6) 55%, transparent 75%);
+  margin-top: 14px;
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.card-pedestal.pedestal-pulse {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.55));
 }
 
 .stage-status-box {
@@ -978,8 +1325,30 @@ h1, h2, h3, h4, .font-heading {
 }
 
 /* ==========================================================================
-   MINIMAL MECHANICAL ANIMATIONS
+   MINIMAL MECHANICAL ANIMATIONS & CARD 3D EFFECTS
    ========================================================================== */
+
+@keyframes cardHoverAndVibrate {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(-1deg); }
+  100% { transform: translateY(-4px) rotate(1deg); }
+}
+
+@keyframes mandalaFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes mandalaSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes foilShimmer {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
 
 @keyframes chestVibrate {
   0% { transform: translate(0, 0); }

@@ -12,7 +12,7 @@ import {
   outcomeFromRandomness,
   type MimicOutcome,
 } from './lib/mimic';
-import { ChestStage, type ChestAnimationState } from './components/ChestStage';
+import { CardStage, type CardAnimationState } from './components/CardStage';
 import { Sidebar } from './components/Sidebar';
 import { HistoryStrip } from './components/HistoryStrip';
 import { StatsStrip } from './components/StatsStrip';
@@ -259,7 +259,7 @@ export function App() {
     }
 
     if (balance !== undefined && parsed > balance) {
-      setError('Insufficient balance to open chest.');
+      setError('Insufficient balance to draw card.');
       return;
     }
 
@@ -279,11 +279,11 @@ export function App() {
       );
     } catch (cause) {
       setRound(null);
-      setError(cause instanceof Error ? cause.message : 'Failed to open chest session.');
+      setError(cause instanceof Error ? cause.message : 'Failed to draw fate card session.');
     }
   }, [hostApi, wagerInput, decimals, balance]);
 
-  const animationState: ChestAnimationState =
+  const animationState: CardAnimationState =
     !round
       ? 'idle'
       : round.status === 'opening' || round.status === 'waiting'
@@ -298,10 +298,10 @@ export function App() {
       <header className="mimic-header">
         <div className="header-left">
           <div className="logo-box">
-            <span>🗝️</span>
+            <span>🔮</span>
           </div>
           <div className="header-titles">
-            <h1 className="game-title">MIMIC DUNGEON</h1>
+            <h1 className="game-title">ARCANA FATE</h1>
             <span className="badge-rtp">96.00% RTP</span>
             <span className="badge-vrf">VRF CERTIFIED</span>
           </div>
@@ -354,8 +354,8 @@ export function App() {
               </div>
             )}
 
-            {/* Chest Stage Viewport */}
-            <ChestStage
+            {/* 3D Fate Card Stage Viewport */}
+            <CardStage
               state={animationState}
               outcome={round?.outcome ?? null}
               fastMode={fastMode}

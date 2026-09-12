@@ -191,28 +191,28 @@ export function Sidebar({
 
       {/* Paytable Multipliers Preview */}
       <div className="paytable-card">
-        <span className="paytable-card-title">POSSIBLE REWARDS</span>
+        <span className="paytable-card-title">FATE CARDS</span>
         <div className="paytable-row">
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f87171' }}>
-            <span>💀</span> Mimic (50%)
+            <span>💀</span> The Void (50%)
           </span>
           <span className="paytable-mono-mult" style={{ color: '#ef4444' }}>0.00×</span>
         </div>
         <div className="paytable-row">
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#cbd5e1' }}>
-            <span>🥈</span> Silver (30%)
+            <span>🥈</span> Silver Rune (30%)
           </span>
           <span className="paytable-mono-mult" style={{ color: '#cbd5e1' }}>1.20×</span>
         </div>
         <div className="paytable-row">
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fde047' }}>
-            <span>💰</span> Gold (16%)
+            <span>☀️</span> Golden Sun (16%)
           </span>
           <span className="paytable-mono-mult" style={{ color: '#f59e0b' }}>2.50×</span>
         </div>
         <div className="paytable-row">
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#d8b4fe' }}>
-            <span>👑</span> Relic (4%)
+            <span>🔮</span> Destiny (4%)
           </span>
           <span className="paytable-mono-mult" style={{ color: '#c084fc' }}>5.00×</span>
         </div>
@@ -228,7 +228,7 @@ export function Sidebar({
         disabled={disabled || !parsedWager || isInsufficient}
         className="btn-open-chest"
       >
-        {disabled ? 'OPENING...' : 'OPEN CHEST'}
+        {disabled ? 'DRAWING...' : 'DRAW CARD'}
       </button>
 
       {/* Utility Bar */}
@@ -237,7 +237,7 @@ export function Sidebar({
           type="button"
           onClick={onToggleFastMode}
           className={`btn-util ${fastMode ? 'active' : ''}`}
-          title="Skip chest animation for faster rounds"
+          title="Skip card flip animation for faster rounds"
         >
           <span>⚡</span> Fast
         </button>
@@ -264,7 +264,7 @@ export function Sidebar({
           type="button"
           onClick={onOpenPaytable}
           className="btn-util"
-          title="View game rules, RTP, and Rejection Sampling info"
+          title="View card paytable, RTP rules, and VRF proof"
         >
           <span>ℹ️</span> Rules
         </button>

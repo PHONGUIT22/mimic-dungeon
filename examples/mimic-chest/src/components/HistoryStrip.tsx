@@ -5,7 +5,7 @@ export function HistoryStrip({ history }: { history: MimicOutcome[] }) {
     return (
       <div className="history-strip-box empty">
         <span className="history-label">LIVE</span>
-        <span className="history-empty-text">No chests opened yet. Place bet to start.</span>
+        <span className="history-empty-text">No fate cards drawn yet. Place bet to start.</span>
       </div>
     );
   }

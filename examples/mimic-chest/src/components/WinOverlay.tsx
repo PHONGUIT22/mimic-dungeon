@@ -24,7 +24,7 @@ export function WinOverlay({
     <div className="modal-backdrop">
       <div className={`win-overlay-card ${isLegendary ? 'win-card-legendary' : 'win-card-gold'}`}>
         <span style={{ fontSize: '44px', marginBottom: '6px' }}>
-          {isLegendary ? '👑' : '💰'}
+          {isLegendary ? '🔮' : '☀️'}
         </span>
 
         <span
@@ -37,7 +37,7 @@ export function WinOverlay({
             color: isLegendary ? '#d8b4fe' : '#fcd34d',
           }}
         >
-          {isLegendary ? 'MYTHIC JACKPOT HIT' : 'BIG WIN REWARD'}
+          {isLegendary ? 'MYTHIC DESTINY HIT' : 'SOLAR BLESSING REWARD'}
         </span>
 
         <h2 style={{ fontFamily: 'Rubik, monospace', fontSize: '36px', fontWeight: 900, color: '#fff', margin: '4px 0' }}>
@@ -59,7 +59,7 @@ export function WinOverlay({
           onClick={onDismiss}
           className="btn-claim"
         >
-          COLLECT PAYOUT
+          COLLECT WINNINGS
         </button>
       </div>
     </div>

@@ -14,9 +14,9 @@ export function PaytableModal({
       <div className="modal-card" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '20px' }}>📜</span>
+            <span style={{ fontSize: '20px' }}>🔮</span>
             <h2 className="font-heading" style={{ fontSize: '18px', fontWeight: 800, color: '#fff' }}>
-              Mimic Dungeon Paytable & Rules
+              Arcana Fate: Paytable & Rules
             </h2>
           </div>
           <button onClick={onClose} className="modal-close-btn">
@@ -26,7 +26,7 @@ export function PaytableModal({
 
         <div className="modal-body">
           <p>
-            In <strong style={{ color: '#fff' }}>Mimic Dungeon</strong>, each round is resolved instantly on-chain using 32-byte VRF randomness with cryptographic <strong>Rejection Sampling</strong> to guarantee 100% uniform distributions and zero modulo bias.
+            In <strong style={{ color: '#fff' }}>Arcana Fate</strong>, each round draws a mystical fate card resolved instantly on-chain using 32-byte VRF randomness with cryptographic <strong>Rejection Sampling</strong> to guarantee 100% uniform distributions and zero modulo bias.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -46,7 +46,7 @@ export function PaytableModal({
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '18px' }}>
-                    {tier.tierIndex === 3 ? '👑' : tier.tierIndex === 2 ? '💰' : tier.tierIndex === 1 ? '🥈' : '💀'}
+                    {tier.tierIndex === 3 ? '🔮' : tier.tierIndex === 2 ? '☀️' : tier.tierIndex === 1 ? '🥈' : '💀'}
                   </span>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span className="font-heading" style={{ fontSize: '12px', fontWeight: 800, color: '#fff' }}>

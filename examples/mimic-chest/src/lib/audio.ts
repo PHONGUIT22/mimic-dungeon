@@ -337,55 +337,84 @@ class SoundManager {
     osc.stop(now + 0.05);
   }
 
-  public playChestShake() {
+  public playCardDraw() {
     if (!this.sfxEnabled) return;
     this.initContext();
     if (!this.ctx) return;
 
-    this.duckBgm(1100);
+    this.duckBgm(900);
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(260, now);
+    osc.frequency.exponentialRampToValueAtTime(620, now + 0.18);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(900, now);
+    filter.frequency.exponentialRampToValueAtTime(1600, now + 0.18);
+    filter.Q.setValueAtTime(2.0, now);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.20, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGainNode ?? this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.25);
+  }
+
+  public playChestShake() {
+    this.playCardDraw();
+  }
+
+  public playCardFlip() {
+    if (!this.sfxEnabled) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    this.duckBgm(1200);
 
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(80, now);
-    osc.frequency.linearRampToValueAtTime(120, now + 0.15);
-    osc.frequency.linearRampToValueAtTime(70, now + 0.3);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(850, now);
+    osc.frequency.exponentialRampToValueAtTime(240, now + 0.09);
 
-    gain.gain.setValueAtTime(0.16, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    gain.gain.setValueAtTime(0.26, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
 
     osc.connect(gain);
     gain.connect(this.sfxGainNode ?? this.ctx.destination);
 
     osc.start(now);
-    osc.stop(now + 0.35);
+    osc.stop(now + 0.1);
+
+    // Subtle follow-up magic flutter
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(520, now + 0.04);
+    osc2.frequency.exponentialRampToValueAtTime(780, now + 0.22);
+    gain2.gain.setValueAtTime(0.12, now + 0.04);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+    osc2.connect(gain2);
+    gain2.connect(this.sfxGainNode ?? this.ctx.destination);
+    osc2.start(now + 0.04);
+    osc2.stop(now + 0.25);
   }
 
   public playChestOpen() {
-    if (!this.sfxEnabled) return;
-    this.initContext();
-    if (!this.ctx) return;
-
-    this.duckBgm(1300);
-
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(220, now);
-    osc.frequency.exponentialRampToValueAtTime(660, now + 0.25);
-
-    gain.gain.setValueAtTime(0.24, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-
-    osc.connect(gain);
-    gain.connect(this.sfxGainNode ?? this.ctx.destination);
-
-    osc.start(now);
-    osc.stop(now + 0.35);
+    this.playCardFlip();
   }
 
   public playMimic() {
