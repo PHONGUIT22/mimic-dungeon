@@ -18,6 +18,8 @@ export function Sidebar({
   onResetDemoBalance,
   maxAllowedWager,
   roundStep,
+  onOpenCollection,
+  discoveredCount = 0,
 }: {
   balance: bigint | undefined;
   decimals: number;
@@ -29,6 +31,8 @@ export function Sidebar({
   fastMode: boolean;
   onToggleFastMode: () => void;
   onOpenPaytable: () => void;
+  onOpenCollection: () => void;
+  discoveredCount?: number;
   isDemoMode: boolean;
   onResetDemoBalance: () => void;
   maxAllowedWager?: bigint;
@@ -228,13 +232,13 @@ export function Sidebar({
           sound.playClick();
           onOpenChest();
         }}
-        disabled={roundStep === 'awaiting_pick' ? false : (disabled || !parsedWager || isInsufficient)}
+        disabled={roundStep === 'awaiting_pick' || disabled || !parsedWager || isInsufficient}
         className="btn-open-chest"
       >
         {roundStep === 'opening_session'
           ? 'DEALING...'
           : roundStep === 'awaiting_pick'
-            ? 'PICK CENTER CARD'
+            ? 'CHOOSE A CARD ABOVE'
             : roundStep === 'revealing'
               ? 'REVEALING...'
               : 'DRAW CARD'}
@@ -276,6 +280,18 @@ export function Sidebar({
           title="View card paytable, RTP rules, and VRF proof"
         >
           <span>ℹ️</span> Rules
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            sound.playClick();
+            onOpenCollection();
+          }}
+          className="btn-util btn-util-album"
+          title={`View Tarot Compendium Album (${discoveredCount}/12 discovered)`}
+        >
+          <span>🃏</span> Album ({discoveredCount}/12)
         </button>
       </div>
     </aside>

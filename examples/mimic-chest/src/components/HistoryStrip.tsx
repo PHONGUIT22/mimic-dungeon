@@ -1,11 +1,16 @@
-import type { MimicOutcome } from '../lib/mimic';
+import type { HistoryItem } from '../lib/mimic';
 
-export function HistoryStrip({ history }: { history: MimicOutcome[] }) {
+export interface HistoryStripProps {
+  history: HistoryItem[];
+  onSelectRound?: (item: HistoryItem) => void;
+}
+
+export function HistoryStrip({ history, onSelectRound }: HistoryStripProps) {
   if (history.length === 0) {
     return (
       <div className="history-strip-box empty">
         <span className="history-label">LIVE</span>
-        <span className="history-empty-text">No fate cards drawn yet. Place bet to start.</span>
+        <span className="history-empty-text">No draws yet. Place a bet to generate VRF on-chain proof.</span>
       </div>
     );
   }
@@ -15,7 +20,8 @@ export function HistoryStrip({ history }: { history: MimicOutcome[] }) {
       <span className="history-label">LIVE</span>
       <div className="history-items-row">
         {history.slice(0, 24).map((item, idx) => {
-          const tier = item.tierIndex;
+          const outcome = item.outcome;
+          const tier = outcome.tierIndex;
           const pillClass =
             tier === 3
               ? 'pill-legendary'
@@ -29,13 +35,16 @@ export function HistoryStrip({ history }: { history: MimicOutcome[] }) {
             tier === 3 ? '5.00×' : tier === 2 ? '2.50×' : tier === 1 ? '1.20×' : '0.00×';
 
           return (
-            <div
-              key={`${item.randomness ?? ''}_${item.roll}_${idx}`}
-              title={`${item.name} (${multText}) • Roll: ${item.roll}/100`}
+            <button
+              key={`${outcome.randomness ?? ''}_${outcome.roll}_${idx}`}
+              type="button"
+              onClick={() => onSelectRound?.(item)}
+              title={`Click to verify VRF seed • ${outcome.name} (${multText}) • Roll: ${outcome.roll}/100`}
               className={`history-pill ${pillClass}`}
+              style={{ cursor: 'pointer', background: 'transparent' }}
             >
               <span className="pill-mult">{multText}</span>
-            </div>
+            </button>
           );
         })}
       </div>
