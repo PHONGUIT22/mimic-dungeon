@@ -562,6 +562,222 @@ class SoundManager {
       }, i * 120);
     });
   }
+
+  // ============================================================================
+  // BALATRO-STYLE PROCEDURAL ARCANA SYNTHESIZERS
+  // ============================================================================
+
+  /**
+   * Low-to-high swoosh when cards deal onto the table.
+   * Procedural sweeping bandpass filter with smooth organic swell.
+   */
+  public playDealWhoosh() {
+    if (!this.sfxEnabled) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    this.duckBgm(600);
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    // Fast low-to-high frequency sweep (140Hz up to 540Hz)
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(540, now + 0.18);
+
+    // Resonant bandpass filter opening up
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(320, now);
+    filter.frequency.exponentialRampToValueAtTime(1600, now + 0.18);
+    filter.Q.setValueAtTime(1.8, now);
+
+    // Soft swell envelope: 35ms attack, 180ms decay
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.22, now + 0.035);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGainNode ?? this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.24);
+  }
+
+  /**
+   * Crisp mechanical snap when hovering / clicking a card.
+   * High-transient card stock click + snappy damped thud.
+   */
+  public playCardSelect() {
+    if (!this.sfxEnabled) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+
+    // 1. High transient snap (1100Hz -> 220Hz in 28ms)
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(1100, now);
+    osc.frequency.exponentialRampToValueAtTime(220, now + 0.028);
+
+    gain.gain.setValueAtTime(0.22, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.032);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGainNode ?? this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.035);
+
+    // 2. Tactile body tap (damped wooden/card thud)
+    const osc2 = this.ctx.createOscillator();
+    const filter2 = this.ctx.createBiquadFilter();
+    const gain2 = this.ctx.createGain();
+
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(340, now);
+    osc2.frequency.exponentialRampToValueAtTime(90, now + 0.045);
+
+    filter2.type = 'lowpass';
+    filter2.frequency.setValueAtTime(450, now);
+
+    gain2.gain.setValueAtTime(0.18, now);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+    osc2.connect(filter2);
+    filter2.connect(gain2);
+    gain2.connect(this.sfxGainNode ?? this.ctx.destination);
+
+    osc2.start(now);
+    osc2.stop(now + 0.055);
+  }
+
+  /**
+   * Rapid sequence of 5-8 ascending sine/triangle blips whose pitch rises
+   * exponentially based on payout multiplier (like the Balatro chip scoring tally).
+   */
+  public playPitchShiftTally(multiplier: number) {
+    if (!this.sfxEnabled) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    this.duckBgm(1600);
+
+    // Number of tally steps: 5 for low wins, up to 8 for max multiplier
+    const safeMult = Math.max(1, multiplier);
+    const steps = safeMult >= 5 ? 8 : safeMult >= 2.5 ? 7 : safeMult >= 1.2 ? 6 : 5;
+
+    // Base pitch scales with multiplier: higher tier = higher starting & ceiling frequency
+    const baseFreq = 340 + Math.min(200, safeMult * 35);
+    // Exponential pitch growth factor
+    const pitchFactor = 1.08 + Math.min(0.08, safeMult * 0.015);
+    const stepIntervalMs = safeMult >= 5 ? 45 : 55;
+
+    for (let i = 0; i < steps; i++) {
+      const delayMs = i * stepIntervalMs;
+      const isFinal = i === steps - 1;
+
+      setTimeout(() => {
+        if (!this.ctx || !this.sfxEnabled) return;
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        // Calculate exponentially rising frequency for each tally step
+        const freq = baseFreq * Math.pow(pitchFactor, i);
+        osc.type = isFinal ? 'triangle' : 'sine';
+        osc.frequency.setValueAtTime(freq, t);
+        // Slight micro-pitch bend at start of each note for snappy arcade punch
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.05, t + 0.015);
+        osc.frequency.exponentialRampToValueAtTime(freq, t + 0.05);
+
+        const volume = isFinal ? 0.28 : 0.16 + (i / steps) * 0.08;
+        const duration = isFinal ? 0.25 : 0.07;
+
+        gain.gain.setValueAtTime(0.001, t);
+        gain.gain.linearRampToValueAtTime(volume, t + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGainNode ?? this.ctx.destination);
+
+        osc.start(t);
+        osc.stop(t + duration + 0.02);
+
+        // On final step for big wins (>= 2.5x), add a crystal shimmer overtone
+        if (isFinal && safeMult >= 2.5) {
+          const oscOvertone = this.ctx.createOscillator();
+          const gainOvertone = this.ctx.createGain();
+          oscOvertone.type = 'sine';
+          oscOvertone.frequency.setValueAtTime(freq * 2, t);
+
+          gainOvertone.gain.setValueAtTime(0.001, t);
+          gainOvertone.gain.linearRampToValueAtTime(0.14, t + 0.01);
+          gainOvertone.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+
+          oscOvertone.connect(gainOvertone);
+          gainOvertone.connect(this.sfxGainNode ?? this.ctx.destination);
+
+          oscOvertone.start(t);
+          oscOvertone.stop(t + 0.4);
+        }
+      }, delayMs);
+    }
+  }
+
+  /**
+   * A subtle melancholic descending pitch when the unpicked card was a 5.0x Jackpot.
+   * Expresses poignant "so close" near-miss disappointment without being abrasive.
+   */
+  public playNearMissSigh() {
+    if (!this.sfxEnabled) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    this.duckBgm(1100);
+
+    const now = this.ctx.currentTime;
+
+    // Dual-oscillator mournful minor glide (F4 -> D4, 360Hz gliding down to 220Hz)
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(360, now);
+    osc1.frequency.exponentialRampToValueAtTime(220, now + 0.7);
+
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(356, now); // Gentle chorus detune
+    osc2.frequency.exponentialRampToValueAtTime(218, now + 0.7);
+
+    // Warm lowpass filter to keep it mellow and breathy
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(600, now);
+    filter.frequency.linearRampToValueAtTime(320, now + 0.75);
+
+    // Soft melancholic sigh envelope: gentle swell then lingering dissolve
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.18, now + 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGainNode ?? this.ctx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 0.85);
+    osc2.stop(now + 0.85);
+  }
 }
 
 export const sound = new SoundManager();
