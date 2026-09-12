@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   type MimicOutcome,
   type DisplayCard,
+  type CardEdition,
   type RoundStep,
   getCardForOutcome,
   generateNearMissCards,
@@ -27,6 +28,7 @@ export interface CardStageProps {
   fastMode: boolean;
   streak?: number;
   onCardPick?: (index: number) => void;
+  onScreenShake?: () => void;
 }
 
 export function CardStage({
@@ -38,6 +40,7 @@ export function CardStage({
   fastMode,
   streak = 0,
   onCardPick,
+  onScreenShake,
 }: CardStageProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -50,6 +53,12 @@ export function CardStage({
     null,
   ]);
   const [flipped, setFlipped] = useState<[boolean, boolean, boolean]>([false, false, false]);
+
+  // Multiplier scoring tally & screen shake state
+  const [tallyMultiplier, setTallyMultiplier] = useState<number | null>(null);
+  const [isTallying, setIsTallying] = useState(false);
+  const [isTallyDone, setIsTallyDone] = useState(false);
+  const [editionTriggered, setEditionTriggered] = useState(false);
 
   // Mouse 3D Parallax tilt tracking
   const [tilt, setTilt] = useState<{ index: number | null; rx: number; ry: number }>({
@@ -73,36 +82,46 @@ export function CardStage({
     }>
   >([]);
 
-  const spawnParticles = useCallback((tierIndex: number, originX: number, originY: number) => {
+  const spawnParticles = useCallback((tierIndex: number, originX: number, originY: number, edition?: CardEdition) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const baseCount = tierIndex === 3 ? 130 : tierIndex === 2 ? 85 : tierIndex === 1 ? 55 : 45;
+    const isPolychrome = edition === 'polychrome';
+    const isHolo = edition === 'holo';
+
+    const baseCount = isPolychrome ? 160 : tierIndex === 3 ? 130 : tierIndex === 2 ? 85 : tierIndex === 1 ? 55 : 45;
     const count = Math.round(baseCount * (streak >= 3 ? 1.6 : 1.0));
 
+    const polyColors = ['#f43f5e', '#fb923c', '#facc15', '#4ade80', '#38bdf8', '#a855f7', '#ec4899', '#ffffff'];
+    const holoColors = ['#38bdf8', '#c084fc', '#818cf8', '#e0e7ff', '#3b82f6', '#ffffff'];
+
     const colors =
-      tierIndex === 3
-        ? ['#c084fc', '#f472b6', '#38bdf8', '#facc15', '#ffffff', '#e879f9', '#fbbf24']
-        : tierIndex === 2
-          ? ['#fbbf24', '#f59e0b', '#d97706', '#fef08a', '#ffffff', '#34d399']
-          : tierIndex === 1
-            ? ['#94a3b8', '#cbd5e1', '#e2e8f0', '#38bdf8', '#ffffff']
-            : ['#ef4444', '#b91c1c', '#7f1d1d', '#a855f7', '#1e1b4b'];
+      isPolychrome
+        ? polyColors
+        : isHolo
+          ? holoColors
+          : tierIndex === 3
+            ? ['#c084fc', '#f472b6', '#38bdf8', '#facc15', '#ffffff', '#e879f9', '#fbbf24']
+            : tierIndex === 2
+              ? ['#fbbf24', '#f59e0b', '#d97706', '#fef08a', '#ffffff', '#34d399']
+              : tierIndex === 1
+                ? ['#94a3b8', '#cbd5e1', '#e2e8f0', '#38bdf8', '#ffffff']
+                : ['#ef4444', '#b91c1c', '#7f1d1d', '#a855f7', '#1e1b4b'];
 
     const newParticles = [];
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * (tierIndex === 3 ? 9.5 : 7) + 2;
+      const speed = Math.random() * (isPolychrome || tierIndex === 3 ? 10 : 7) + 2;
       newParticles.push({
         x: originX,
         y: originY,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - (tierIndex > 0 ? 2.5 : 0),
+        vy: Math.sin(angle) * speed - (tierIndex > 0 || isPolychrome ? 2.5 : 0),
         size: Math.random() * 5 + 3,
         color: colors[Math.floor(Math.random() * colors.length)],
         alpha: 1,
         decay: Math.random() * 0.018 + 0.012,
-        shape: (tierIndex === 3 || streak >= 3 ? 'star' : Math.random() > 0.5 ? 'circle' : 'square') as
+        shape: (isPolychrome || isHolo || tierIndex === 3 || streak >= 3 ? 'star' : Math.random() > 0.5 ? 'circle' : 'square') as
           | 'circle'
           | 'star'
           | 'square',
@@ -116,6 +135,8 @@ export function CardStage({
   useEffect(() => {
     if (chosenIndex !== undefined && chosenIndex !== null) {
       setSelectedIdx(chosenIndex);
+    } else {
+      setSelectedIdx(null);
     }
   }, [chosenIndex]);
 
@@ -126,6 +147,10 @@ export function CardStage({
       setSelectedIdx(null);
       setFlipped([false, false, false]);
       setCards([null, null, null]);
+      setTallyMultiplier(null);
+      setIsTallying(false);
+      setIsTallyDone(false);
+      setEditionTriggered(false);
       sound.playDealWhoosh();
 
       const dealTimer = setTimeout(
@@ -137,12 +162,17 @@ export function CardStage({
 
       return () => clearTimeout(dealTimer);
     } else if (step === 'awaiting_pick') {
-      setSpreadState(prev => (prev === 'dealing' ? prev : 'awaiting_pick'));
+      // Force awaiting_pick to avoid being stuck in 'dealing' if timer hasn't fired
+      setSpreadState('awaiting_pick');
     } else if (step === 'idle' || state === 'idle') {
       setSpreadState('idle');
       setSelectedIdx(null);
       setFlipped([false, false, false]);
       setCards([null, null, null]);
+      setTallyMultiplier(null);
+      setIsTallying(false);
+      setIsTallyDone(false);
+      setEditionTriggered(false);
     } else if (step === 'settled') {
       setSpreadState('done');
       setFlipped([true, true, true]);
@@ -151,15 +181,15 @@ export function CardStage({
 
   const effectiveSelectedIdx = chosenIndex !== null && chosenIndex !== undefined ? chosenIndex : selectedIdx;
 
-  // 2. Handle card selection by player (or auto-pick in fastMode / timeout)
+  // 2. Handle card selection by player
   const handleCardClick = useCallback(
     (idx: number) => {
-      if (spreadState !== 'awaiting_pick' || effectiveSelectedIdx !== null) return;
+      if (!((step === 'awaiting_pick' || spreadState === 'awaiting_pick') && effectiveSelectedIdx === null)) return;
       sound.playCardSelect();
       setSelectedIdx(idx);
       onCardPick?.(idx);
     },
-    [spreadState, effectiveSelectedIdx, onCardPick],
+    [step, spreadState, effectiveSelectedIdx, onCardPick],
   );
 
   // 3. Reveal sequence once a card is selected and outcome is ready
@@ -201,7 +231,7 @@ export function CardStage({
       return next;
     });
 
-    // Audio & particles for selected outcome
+    // Base Audio for selected outcome
     if (outcome.tierIndex === 0) {
       sound.playMimic();
     } else if (outcome.tierIndex === 1) {
@@ -212,24 +242,60 @@ export function CardStage({
       sound.playLegendary();
     }
 
-    if (outcome.won) {
-      sound.playPitchShiftTally(outcome.multiplier);
-    }
-
     // Spawn particle burst at selected card
     const canvas = canvasRef.current;
     if (canvas) {
       const xPercent = activeIdx === 0 ? 0.25 : activeIdx === 1 ? 0.5 : 0.75;
-      spawnParticles(outcome.tierIndex, canvas.width * xPercent, canvas.height * 0.44);
+      spawnParticles(outcome.tierIndex, canvas.width * xPercent, canvas.height * 0.44, actualCard?.edition);
     }
 
-    // STEP B: Flip remaining 2 near-miss cards after 350ms (or 150ms in fastMode)
-    const nearMissTimer = setTimeout(
-      () => {
+    const isEditionCard = actualCard?.edition && actualCard.edition !== 'standard';
+
+    if (isEditionCard) {
+      // Trigger edition visual & audio effects
+      const editionTimer = setTimeout(() => {
+        setEditionTriggered(true);
+        onScreenShake?.();
+
+        if (actualCard.edition === 'foil') {
+          sound.playFoilTing();
+        } else if (actualCard.edition === 'holo') {
+          sound.playHoloTing();
+        } else if (actualCard.edition === 'polychrome') {
+          sound.playPolychromeChime();
+        }
+      }, fastMode ? 100 : 220);
+
+      // Scoring tally for winning outcomes
+      if (outcome.won && outcome.multiplier > 0) {
+        setTallyMultiplier(1.0);
+        setIsTallying(true);
+        setIsTallyDone(false);
+
+        sound.playPitchShiftTally(
+          outcome.multiplier,
+          (_stepIndex, currentMult, isFinal) => {
+            setTallyMultiplier(currentMult);
+            if (isFinal) {
+              setIsTallying(false);
+              setIsTallyDone(true);
+              onScreenShake?.();
+            }
+          },
+          fastMode,
+          1.0,
+        );
+      } else {
+        setTallyMultiplier(0);
+        setIsTallying(false);
+        setIsTallyDone(true);
+      }
+
+      const nearMissDelay = fastMode ? 200 : (outcome.tierIndex === 0 ? 350 : 500);
+      const nearMissTimer = setTimeout(() => {
         setSpreadState('near_miss');
         setFlipped([true, true, true]);
 
-        // If player lost (Tier 0) and one of the unpicked cards was Tier 3 (5.0x Jackpot), play sigh
         if (outcome.tierIndex === 0) {
           const hasJackpotMiss = dummyCards.some(c => c.tierIndex === 3);
           if (hasJackpotMiss) {
@@ -237,20 +303,66 @@ export function CardStage({
           }
         }
 
-        const doneTimer = setTimeout(
-          () => {
-            setSpreadState('done');
-          },
-          fastMode ? 150 : 500,
-        );
+        const doneTimer = setTimeout(() => {
+          setSpreadState('done');
+        }, fastMode ? 150 : 500);
 
         return () => clearTimeout(doneTimer);
-      },
-      fastMode ? 150 : 350,
-    );
+      }, nearMissDelay);
 
-    return () => clearTimeout(nearMissTimer);
-  }, [step, state, chosenIndex, selectedIdx, outcome, wager, spreadState, fastMode, spawnParticles]);
+      return () => {
+        clearTimeout(editionTimer);
+        clearTimeout(nearMissTimer);
+      };
+    } else {
+      // Standard Edition Card
+      if (outcome.won && outcome.multiplier > 0) {
+        setTallyMultiplier(1.0);
+        setIsTallying(true);
+        setIsTallyDone(false);
+
+        sound.playPitchShiftTally(
+          outcome.multiplier,
+          (_stepIndex, currentMult, isFinal) => {
+            setTallyMultiplier(currentMult);
+            if (isFinal) {
+              setIsTallying(false);
+              setIsTallyDone(true);
+              onScreenShake?.();
+            }
+          },
+          fastMode,
+          1.0,
+        );
+      } else {
+        setTallyMultiplier(0);
+        setIsTallying(false);
+        setIsTallyDone(true);
+      }
+
+      // Flip remaining 2 near-miss cards (350ms for The Void x0.0 loss, or 450ms after tally)
+      const delayTime = fastMode ? 150 : outcome.tierIndex === 0 ? 350 : 450;
+      const nearMissTimer = setTimeout(() => {
+        setSpreadState('near_miss');
+        setFlipped([true, true, true]);
+
+        if (outcome.tierIndex === 0) {
+          const hasJackpotMiss = dummyCards.some(c => c.tierIndex === 3);
+          if (hasJackpotMiss) {
+            sound.playNearMissSigh();
+          }
+        }
+
+        const doneTimer = setTimeout(() => {
+          setSpreadState('done');
+        }, fastMode ? 150 : 500);
+
+        return () => clearTimeout(doneTimer);
+      }, delayTime);
+
+      return () => clearTimeout(nearMissTimer);
+    }
+  }, [step, state, chosenIndex, selectedIdx, outcome, wager, spreadState, fastMode, spawnParticles, onScreenShake]);
 
   // Particle Canvas Render Loop
   useEffect(() => {
@@ -404,7 +516,9 @@ export function CardStage({
             return (
               <div
                 key={slotIndex}
-                className={`card-slot-3d ${isAwaiting ? 'slot-awaiting' : ''}`}
+                className={`card-slot-3d ${isAwaiting ? 'slot-awaiting' : ''} ${isPicked ? 'slot-picked' : ''} ${
+                  isFlipped && cardData?.edition === 'polychrome' ? 'slot-polychrome' : ''
+                } ${isFlipped && cardData?.edition === 'holo' ? 'slot-holo' : ''}`}
                 onMouseMove={e => handleMouseMove(e, slotIndex)}
                 onMouseLeave={handleMouseLeave}
                 onClick={() => handleCardClick(slotIndex)}
@@ -449,9 +563,16 @@ export function CardStage({
 
                   {/* CARD FRONT (MẶT TRƯỚC: NGHỆ THUẬT TAROT & BADGES BALATRO) */}
                   <div
-                    className={`card-face card-front card-tier-${cardData ? cardData.tierIndex : 0}`}
+                    className={`card-face card-front card-tier-${cardData ? cardData.tierIndex : 0} card-edition-${
+                      cardData ? cardData.edition : 'standard'
+                    } ${cardData?.edition === 'polychrome' ? 'is-polychrome' : ''} ${
+                      cardData?.edition === 'holo' ? 'is-holo' : ''
+                    } ${cardData?.edition === 'foil' ? 'is-foil' : ''}`}
                   >
-                    {cardData && cardData.tierIndex === 3 && <div className="card-foil-sheen" />}
+                    {/* Dynamic Edition Sheen Overlays */}
+                    {cardData?.edition === 'polychrome' && <div className="card-polychrome-sheen" />}
+                    {cardData?.edition === 'holo' && <div className="card-holo-sheen" />}
+                    {(cardData?.edition === 'foil' || cardData?.tierIndex === 3) && <div className="card-foil-sheen" />}
 
                     {/* Header Bar */}
                     <div className="card-header-bar">
@@ -466,13 +587,23 @@ export function CardStage({
                         {/* Balatro Edition Badge */}
                         {cardData && cardData.edition !== 'standard' && (
                           <span className={`card-edition-badge edition-${cardData.edition}`}>
-                            {cardData.edition.toUpperCase()}
+                            {cardData.edition === 'polychrome' ? '★ POLYCHROME ★' : cardData.edition.toUpperCase()}
                           </span>
                         )}
                       </div>
 
-                      <span className="card-multiplier-pill">
-                        {cardData?.multiplierText ?? 'x0.0'}
+                      <span
+                        className={`card-multiplier-pill ${
+                          isPicked && isTallying ? 'tally-counting' : ''
+                        } ${isPicked && isTallyDone ? 'tally-final' : ''} ${
+                          isPicked && editionTriggered && cardData?.edition !== 'standard'
+                            ? `edition-active-pill edition-pill-${cardData?.edition}`
+                            : ''
+                        }`}
+                      >
+                        {isPicked && isTallying && tallyMultiplier !== null
+                          ? `x${tallyMultiplier.toFixed(1)}`
+                          : (cardData?.multiplierText ?? 'x0.0')}
                       </span>
                     </div>
 
@@ -482,6 +613,37 @@ export function CardStage({
                         {cardData && <CardArt iconType={cardData.iconType} tier={cardData.tierIndex} />}
                       </div>
                     </div>
+
+                    {/* Floating Balatro Edition Modifier Popup */}
+                    {isPicked && editionTriggered && cardData && cardData.edition !== 'standard' && cardData.editionBonus && (
+                      <div className={`edition-modifier-popup edition-popup-${cardData.edition}`}>
+                        <span className="edition-pop-icon">
+                          {cardData.edition === 'polychrome' ? '★' : cardData.edition === 'holo' ? '✦' : '✧'}
+                        </span>
+                        <span className="edition-pop-text">{cardData.editionBonus.bonusText}</span>
+                        <span className="edition-pop-icon">
+                          {cardData.edition === 'polychrome' ? '★' : cardData.edition === 'holo' ? '✦' : '✧'}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Near-Miss / Missed Jackpot Stamp for The Void (x0.0) loss */}
+                    {isFlipped && !isPicked && outcome?.tierIndex === 0 && cardData && cardData.tierIndex === 3 && (
+                      <div className="near-miss-stamp">
+                        <div className="stamp-inner">
+                          <span className="stamp-stars">★ ★ ★</span>
+                          <span className="stamp-main">SO CLOSE!</span>
+                          <span className="stamp-sub">MISSED JACKPOT</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Flaming Polychrome Edition Banner */}
+                    {cardData?.edition === 'polychrome' && (
+                      <div className="polychrome-fire-banner">
+                        <span className="fire-text">★ POLYCHROME EDITION ★</span>
+                      </div>
+                    )}
 
                     {/* Footer Info */}
                     <div className="card-footer-info">
@@ -514,7 +676,7 @@ export function CardStage({
             </div>
           )}
 
-          {(spreadState === 'near_miss' || spreadState === 'done') && chosenCard && outcome && (
+          {(spreadState === 'near_miss' || spreadState === 'done') && chosenCard && outcome && flipped[activePickIdx ?? 0] && (
             <div className={`outcome-badge ${badgeClass}`}>
               <span className="badge-tag">
                 {chosenCard.name} • {chosenCard.category}
@@ -544,7 +706,7 @@ export function CardStage({
 /**
  * Procedural SVG Artwork for the 12 distinct Tarot Cards
  */
-function CardArt({ iconType, tier }: { iconType: string; tier: number }) {
+export function CardArt({ iconType, tier }: { iconType: string; tier: number }) {
   const strokeColor =
     tier === 3 ? '#e879f9' : tier === 2 ? '#facc15' : tier === 1 ? '#cbd5e1' : '#f87171';
   const accentColor =
