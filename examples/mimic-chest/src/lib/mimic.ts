@@ -1,5 +1,7 @@
 import { decodeAbiParameters, encodeAbiParameters, hexToBytes, keccak256, type Hex } from 'viem';
 import type { HexString } from '@chain/casino-sdk';
+import { generateMysticCard, type MysticCardDef } from './proceduralNames';
+import { hashSeed } from '../components/ProceduralSigil';
 
 export const RTP_BPS = 9600n; // 96.00% RTP
 export const BASIS_POINTS = 10000n;
@@ -130,7 +132,7 @@ export type EditionBonusInfo = {
 };
 
 export type DisplayCard = {
-  cardId: TarotCardId;
+  cardId: string;
   name: string;
   roman: string;
   category: string;
@@ -147,6 +149,7 @@ export type DisplayCard = {
   isActualOutcome?: boolean;
   roll?: number;
   iconType: string;
+  sigilSeed?: number;
 };
 
 export const TAROT_CATALOG: Record<TarotCardId, TarotCardDef> = {
@@ -428,6 +431,48 @@ export function createDisplayCard(
   };
 }
 
+export function createDisplayCardFromMystic(
+  mysticDef: MysticCardDef,
+  wager: bigint,
+  edition: CardEdition = 'standard',
+  isActualOutcome: boolean = false,
+  roll?: number,
+): DisplayCard {
+  let payout: bigint;
+  if (mysticDef.tierIndex === 0) {
+    payout = 0n;
+  } else if (mysticDef.tierIndex === 1) {
+    payout = (wager * 12n) / 10n;
+  } else if (mysticDef.tierIndex === 2) {
+    payout = (wager * 25n) / 10n;
+  } else {
+    payout = wager * 5n;
+  }
+
+  const editionBonus = computeEditionBonus(mysticDef.multiplier, edition);
+
+  return {
+    cardId: mysticDef.id,
+    name: mysticDef.name,
+    roman: mysticDef.roman,
+    category: mysticDef.category,
+    tierIndex: mysticDef.tierIndex,
+    tier: mysticDef.tier,
+    baseMultiplier: mysticDef.multiplier,
+    multiplier: mysticDef.multiplier,
+    multiplierText: mysticDef.multiplierText,
+    payout,
+    subtitle: editionBonus.bonusText ? `${mysticDef.subtitle} • ${editionBonus.bonusText}` : mysticDef.subtitle,
+    description: mysticDef.flavorText,
+    edition,
+    editionBonus,
+    isActualOutcome,
+    roll,
+    iconType: 'sigil',
+    sigilSeed: mysticDef.sigilSeed,
+  };
+}
+
 export function getCardForOutcome(
   tierIndex: number,
   roll: number,
@@ -435,10 +480,14 @@ export function getCardForOutcome(
   randomnessSeed?: string,
 ): DisplayCard {
   const safeTier = Math.max(0, Math.min(3, tierIndex));
-  const tierCards = CARDS_BY_TIER[safeTier] || CARDS_BY_TIER[0];
-  const cardDef = tierCards[Math.abs(roll) % tierCards.length];
+  const rawSeed =
+    typeof randomnessSeed === 'string' && randomnessSeed.startsWith('0x')
+      ? hashSeed(randomnessSeed) + roll
+      : roll * 10007 + (typeof randomnessSeed === 'number' ? randomnessSeed : 42);
+
+  const mysticDef = generateMysticCard(rawSeed, safeTier);
   const edition = sampleCardEdition(randomnessSeed || roll);
-  return createDisplayCard(cardDef, wager, edition, true, roll);
+  return createDisplayCardFromMystic(mysticDef, wager, edition, true, roll);
 }
 
 /**
@@ -449,49 +498,42 @@ export function getCardForOutcome(
 export function generateNearMissCards(actualOutcome: MimicOutcome, wager: bigint): DisplayCard[] {
   const dummyCards: DisplayCard[] = [];
   const actualTier = actualOutcome.tierIndex;
+  const baseSeed = hashSeed(actualOutcome.randomness || String(actualOutcome.roll)) + 997;
 
   if (actualTier === 0) {
     // Player lost (The Void x0.0). Near-Miss psychology:
-    // Slot 1 unpicked: Guarantee Tier 3 (5.0x Mythic Jackpot - Wheel of Destiny / The World / The Soul)
-    const tier3Cards = CARDS_BY_TIER[3];
-    const card1 = tier3Cards[Math.floor(Math.random() * tier3Cards.length)];
-    const edition1 = sampleCardEdition();
-    dummyCards.push(createDisplayCard(card1, wager, edition1, false));
+    // Slot 1 unpicked: Guarantee Tier 3 (5.0x Mythic Jackpot)
+    const card1 = generateMysticCard(baseSeed + 301, 'destiny');
+    const edition1 = sampleCardEdition(baseSeed + 301);
+    dummyCards.push(createDisplayCardFromMystic(card1, wager, edition1, false));
 
     // Slot 2 unpicked: Tier 1 (Silver 1.2x) or Tier 2 (Gold 2.5x)
-    const midTier = Math.random() < 0.6 ? 2 : 1;
-    const midTierCards = CARDS_BY_TIER[midTier];
-    const card2 = midTierCards[Math.floor(Math.random() * midTierCards.length)];
-    const edition2 = sampleCardEdition();
-    dummyCards.push(createDisplayCard(card2, wager, edition2, false));
+    const midTier = baseSeed % 10 < 6 ? 2 : 1;
+    const card2 = generateMysticCard(baseSeed + 502, midTier);
+    const edition2 = sampleCardEdition(baseSeed + 502);
+    dummyCards.push(createDisplayCardFromMystic(card2, wager, edition2, false));
   } else if (actualTier === 1) {
-    // Player won Silver 1.2x: Show one Tier 2/3 (could have won more!) and one Tier 0 (dodged bullet)
-    const tier0Cards = CARDS_BY_TIER[0];
-    const card0 = tier0Cards[Math.floor(Math.random() * tier0Cards.length)];
-    dummyCards.push(createDisplayCard(card0, wager, sampleCardEdition(), false));
+    // Player won Silver 1.2x: Show one Tier 2/3 (could have won more!) and one Tier 0 (dodged loss)
+    const card0 = generateMysticCard(baseSeed + 101, 'void');
+    dummyCards.push(createDisplayCardFromMystic(card0, wager, sampleCardEdition(baseSeed + 101), false));
 
-    const higherTier = Math.random() < 0.4 ? 3 : 2;
-    const higherCards = CARDS_BY_TIER[higherTier];
-    const cardHigh = higherCards[Math.floor(Math.random() * higherCards.length)];
-    dummyCards.push(createDisplayCard(cardHigh, wager, sampleCardEdition(), false));
+    const higherTier = baseSeed % 10 < 4 ? 3 : 2;
+    const cardHigh = generateMysticCard(baseSeed + 703, higherTier);
+    dummyCards.push(createDisplayCardFromMystic(cardHigh, wager, sampleCardEdition(baseSeed + 703), false));
   } else if (actualTier === 2) {
     // Player won Gold 2.5x: Show one Tier 3 (Jackpot was right there!) and one Tier 0 (dodged loss)
-    const tier3Cards = CARDS_BY_TIER[3];
-    const card3 = tier3Cards[Math.floor(Math.random() * tier3Cards.length)];
-    dummyCards.push(createDisplayCard(card3, wager, sampleCardEdition(), false));
+    const card3 = generateMysticCard(baseSeed + 303, 'destiny');
+    dummyCards.push(createDisplayCardFromMystic(card3, wager, sampleCardEdition(baseSeed + 303), false));
 
-    const tier0Cards = CARDS_BY_TIER[0];
-    const card0 = tier0Cards[Math.floor(Math.random() * tier0Cards.length)];
-    dummyCards.push(createDisplayCard(card0, wager, sampleCardEdition(), false));
+    const card0 = generateMysticCard(baseSeed + 102, 'void');
+    dummyCards.push(createDisplayCardFromMystic(card0, wager, sampleCardEdition(baseSeed + 102), false));
   } else {
     // Player hit Tier 3 (5.0x Mythic Jackpot!): Show Tier 0 and Tier 1 (proving they found the only jackpot)
-    const tier0Cards = CARDS_BY_TIER[0];
-    const card0 = tier0Cards[Math.floor(Math.random() * tier0Cards.length)];
-    dummyCards.push(createDisplayCard(card0, wager, sampleCardEdition(), false));
+    const card0 = generateMysticCard(baseSeed + 103, 'void');
+    dummyCards.push(createDisplayCardFromMystic(card0, wager, sampleCardEdition(baseSeed + 103), false));
 
-    const tier1Cards = CARDS_BY_TIER[1];
-    const card1 = tier1Cards[Math.floor(Math.random() * tier1Cards.length)];
-    dummyCards.push(createDisplayCard(card1, wager, sampleCardEdition(), false));
+    const card1 = generateMysticCard(baseSeed + 404, 'silver');
+    dummyCards.push(createDisplayCardFromMystic(card1, wager, sampleCardEdition(baseSeed + 404), false));
   }
 
   return dummyCards;
@@ -578,8 +620,8 @@ export function outcomeFromRoll(roll: number, wager: bigint, randomness: HexStri
     multiplierBps,
     payout,
     roll,
-    name: tierInfo.name,
-    description: tierInfo.description,
+    name: card.name,
+    description: card.description,
     won: payout > 0n,
     randomness,
     card,
