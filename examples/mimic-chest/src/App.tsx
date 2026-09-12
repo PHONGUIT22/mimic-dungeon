@@ -10,7 +10,9 @@ import {
   isTerminalPhase,
   outcomeFromPayout,
   outcomeFromRandomness,
+  getCardForOutcome,
   type MimicOutcome,
+  type HistoryItem,
   type RoundStep,
 } from './lib/mimic';
 import { CardStage } from './components/CardStage';
@@ -18,6 +20,8 @@ import { Sidebar } from './components/Sidebar';
 import { HistoryStrip } from './components/HistoryStrip';
 import { StatsStrip } from './components/StatsStrip';
 import { PaytableModal } from './components/PaytableModal';
+import { VerifyModal } from './components/VerifyModal';
+import { CollectionModal } from './components/CollectionModal';
 import { WinOverlay } from './components/WinOverlay';
 
 export type { RoundStep };
@@ -32,15 +36,9 @@ type Round = {
   chosenIndex?: number;
 };
 
-type HistoryItem = {
-  wager: bigint;
-  outcome: MimicOutcome;
-  sessionKey?: string;
-  timestamp?: number;
-};
-
 const FAST_MODE_KEY = 'mimic_fast_mode';
 const HISTORY_STORAGE_KEY = 'mimic_game_history';
+const COLLECTION_STORAGE_KEY = 'mimic_card_collection';
 
 function loadFastMode(): boolean {
   try {
@@ -56,16 +54,29 @@ function loadStoredHistory(): HistoryItem[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.map((item: any) => ({
-      wager: BigInt(item.wager),
-      outcome: {
-        ...item.outcome,
-        payout: BigInt(item.outcome.payout),
-        multiplierBps: BigInt(item.outcome.multiplierBps ?? 0),
-      },
-      sessionKey: item.sessionKey,
-      timestamp: item.timestamp,
-    }));
+    return parsed
+      .filter((item: any) => {
+        // Genuine items must have valid wager, outcome with roll and 0x randomness
+        return (
+          item &&
+          typeof item.wager === 'string' &&
+          item.outcome &&
+          typeof item.outcome.roll === 'number' &&
+          typeof item.outcome.randomness === 'string' &&
+          item.outcome.randomness.startsWith('0x')
+        );
+      })
+      .map((item: any) => ({
+        wager: BigInt(item.wager),
+        outcome: {
+          ...item.outcome,
+          payout: BigInt(item.outcome.payout),
+          multiplierBps: BigInt(item.outcome.multiplierBps ?? 0),
+        },
+        sessionKey: item.sessionKey,
+        sessionId: item.sessionId,
+        timestamp: item.timestamp ?? Date.now(),
+      }));
   } catch (err) {
     console.warn('[Mimic Dungeon] Failed to load history from storage:', err);
     return [];
@@ -83,6 +94,7 @@ function saveStoredHistory(items: HistoryItem[]) {
           multiplierBps: item.outcome.multiplierBps.toString(),
         },
         sessionKey: item.sessionKey,
+        sessionId: item.sessionId,
         timestamp: item.timestamp,
       })),
     );
@@ -93,6 +105,30 @@ function saveStoredHistory(items: HistoryItem[]) {
   }
 }
 
+function loadStoredCollection(): string[] {
+  try {
+    const raw = localStorage.getItem(COLLECTION_STORAGE_KEY) ?? sessionStorage.getItem(COLLECTION_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((id): id is string => typeof id === 'string');
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredCollection(collection: string[]) {
+  try {
+    const serialized = JSON.stringify(collection);
+    localStorage.setItem(COLLECTION_STORAGE_KEY, serialized);
+    sessionStorage.setItem(COLLECTION_STORAGE_KEY, serialized);
+  } catch (err) {
+    console.warn('[Mimic Dungeon] Failed to save collection to storage:', err);
+  }
+}
+
 export function App() {
   const { hostApi, snapshot, isDemoMode, resetDemoBalance } = useCasinoHost();
 
@@ -100,21 +136,70 @@ export function App() {
   const [round, setRound] = useState<Round | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paytableOpen, setPaytableOpen] = useState(false);
+  const [collectionOpen, setCollectionOpen] = useState(false);
+  const [discoveredCardIds, setDiscoveredCardIds] = useState<string[]>(() => {
+    const stored = loadStoredCollection();
+    // Merge any cards already in stored history
+    const historyCardIds = loadStoredHistory()
+      .map(h => {
+        const card = h.outcome.card ?? getCardForOutcome(h.outcome.tierIndex, h.outcome.roll, h.wager, h.outcome.randomness);
+        return card?.cardId;
+      })
+      .filter(Boolean) as string[];
+    const merged = Array.from(new Set([...stored, ...historyCardIds]));
+    if (merged.length > stored.length) {
+      saveStoredCollection(merged);
+    }
+    return merged;
+  });
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<HistoryItem | null>(null);
+  const [isScreenShaking, setIsScreenShaking] = useState(false);
   const [winDismissed, setWinDismissed] = useState(false);
   const [fastMode, setFastMode] = useState(loadFastMode);
   const [history, setHistory] = useState<HistoryItem[]>(loadStoredHistory);
+
+  const handleScreenShake = useCallback(() => {
+    setIsScreenShaking(true);
+    setTimeout(() => {
+      setIsScreenShaking(false);
+    }, 160);
+  }, []);
 
   // Track already recorded session keys to prevent duplicate history entries
   const recordedSessionsRef = useRef<Set<string>>(
     new Set(loadStoredHistory().map(h => h.sessionKey).filter(Boolean) as string[]),
   );
 
-  const recordOutcomeToHistory = useCallback((sessionKey: string, wager: bigint, outcome: MimicOutcome) => {
+  const clearHistory = useCallback(() => {
+    setHistory([]);
+    recordedSessionsRef.current.clear();
+    try {
+      localStorage.removeItem(HISTORY_STORAGE_KEY);
+      sessionStorage.removeItem(HISTORY_STORAGE_KEY);
+      localStorage.removeItem('mimic_history');
+      sessionStorage.removeItem('mimic_history');
+    } catch (err) {
+      console.warn('[Mimic Dungeon] Failed to clear history storage:', err);
+    }
+  }, []);
+
+  const recordOutcomeToHistory = useCallback((sessionKey: string, wager: bigint, outcome: MimicOutcome, sessionId?: string) => {
     if (recordedSessionsRef.current.has(sessionKey)) return;
     recordedSessionsRef.current.add(sessionKey);
 
+    // Auto-collect card into Tarot Compendium Album
+    const card = outcome.card ?? getCardForOutcome(outcome.tierIndex, outcome.roll, wager, outcome.randomness);
+    if (card?.cardId) {
+      setDiscoveredCardIds(prev => {
+        if (prev.includes(card.cardId)) return prev;
+        const next = [...prev, card.cardId];
+        saveStoredCollection(next);
+        return next;
+      });
+    }
+
     setHistory(prev => {
-      const next: HistoryItem[] = [{ wager, outcome, sessionKey, timestamp: Date.now() }, ...prev];
+      const next: HistoryItem[] = [{ wager, outcome, sessionKey, sessionId, timestamp: Date.now() }, ...prev];
       saveStoredHistory(next);
       return next;
     });
@@ -275,22 +360,17 @@ export function App() {
     });
   }, [snapshot, round?.sessionKey, round?.sessionId, round?.step, round?.wager, round?.chosenIndex]);
 
-  // AFK watchdog: in normal mode, give player 30 seconds to deliberate.
-  // In Fast Mode, auto-pick index 1 (center) after 300ms if not picked.
+  // AFK watchdog: give player 60 seconds to deliberate before auto-picking.
+  // Fast Mode only speeds up card flip/reveal animations, never auto-picks.
   useEffect(() => {
     if (!round || round.step !== 'awaiting_pick' || round.chosenIndex !== undefined) {
       return;
     }
-
-    const afkTimer = setTimeout(
-      () => {
-        handleCardPick(1); // Auto-pick center card on AFK or Fast Mode
-      },
-      fastMode ? 300 : 30000,
-    );
-
+    const afkTimer = setTimeout(() => {
+      handleCardPick(1);
+    }, 60000);
     return () => clearTimeout(afkTimer);
-  }, [round?.step, round?.chosenIndex, fastMode, handleCardPick]);
+  }, [round?.step, round?.chosenIndex, handleCardPick]);
 
   // Stuck watchdog: unfreeze if VRF / session opening hangs > 25s
   useEffect(() => {
@@ -322,6 +402,8 @@ export function App() {
   useEffect(() => {
     if (!round || round.step !== 'revealing' || !round.outcome) return;
 
+    const currentOutcome = round.outcome;
+
     // Card reveal animation: 1200ms in normal mode (350ms near-miss + tally), 400ms in fast mode
     const animDuration = fastMode ? 400 : 1200;
 
@@ -334,7 +416,7 @@ export function App() {
       }
 
       // 2. Commit outcome to history (updates StatsStrip, HistoryStrip, and currentStreak!)
-      recordOutcomeToHistory(round.sessionKey, round.wager, round.outcome);
+      recordOutcomeToHistory(round.sessionKey, round.wager, currentOutcome, round.sessionId);
 
       // 3. Transition to settled state
       setRound(current =>
@@ -380,7 +462,7 @@ export function App() {
     }
 
     const pendingKey = `pending:${Date.now()}`;
-    setRound({ sessionKey: pendingKey, wager: parsed, step: 'opening_session' });
+    setRound({ sessionKey: pendingKey, wager: parsed, step: 'opening_session', chosenIndex: undefined, outcome: undefined });
 
     try {
       const { sessionKey } = await hostApi.openSession({
@@ -451,14 +533,13 @@ export function App() {
     }
   }, [hostApi, wagerInput, decimals, balance]);
 
-  // Primary action button handler (picks center card if awaiting_pick, otherwise opens session)
+  // Primary action button handler (player must click cards directly when awaiting pick)
   const handleActionClick = useCallback(() => {
     if (round?.step === 'awaiting_pick') {
-      handleCardPick(1);
       return;
     }
     handleOpenChest();
-  }, [round?.step, handleCardPick, handleOpenChest]);
+  }, [round?.step, handleOpenChest]);
 
   const isBusy = round !== null && round.step !== 'settled';
 
@@ -504,6 +585,8 @@ export function App() {
             fastMode={fastMode}
             onToggleFastMode={toggleFastMode}
             onOpenPaytable={() => setPaytableOpen(true)}
+            onOpenCollection={() => setCollectionOpen(true)}
+            discoveredCount={discoveredCardIds.length}
             isDemoMode={isDemoMode}
             onResetDemoBalance={resetDemoBalance}
             maxAllowedWager={maxAllowedWager}
@@ -511,7 +594,7 @@ export function App() {
           />
 
           {/* Right Stage Column */}
-          <div className="mimic-stage-column">
+          <div className={`mimic-stage-column ${isScreenShaking ? 'screen-shake' : ''}`}>
             {error && (
               <div className="error-banner">
                 <span>⚠️ {error}</span>
@@ -534,19 +617,42 @@ export function App() {
               fastMode={fastMode}
               streak={currentStreak}
               onCardPick={handleCardPick}
+              onScreenShake={handleScreenShake}
             />
 
             {/* Live History Ticker Strip */}
-            <HistoryStrip history={history.map(h => h.outcome)} />
+            <HistoryStrip
+              history={history}
+              onSelectRound={item => setSelectedHistoryItem(item)}
+            />
           </div>
         </div>
 
         {/* Bottom Game Analytics Grid */}
-        <StatsStrip history={history} decimals={decimals} symbol={symbol} />
+        <StatsStrip
+          history={history}
+          decimals={decimals}
+          symbol={symbol}
+          onReset={clearHistory}
+        />
       </main>
 
       {/* Modals & Overlays */}
       <PaytableModal isOpen={paytableOpen} onClose={() => setPaytableOpen(false)} />
+
+      <CollectionModal
+        isOpen={collectionOpen}
+        onClose={() => setCollectionOpen(false)}
+        discoveredCardIds={discoveredCardIds}
+      />
+
+      <VerifyModal
+        isOpen={selectedHistoryItem !== null}
+        onClose={() => setSelectedHistoryItem(null)}
+        item={selectedHistoryItem}
+        decimals={decimals}
+        symbol={symbol}
+      />
 
       {round?.outcome && round.step === 'settled' && round.outcome.won && !winDismissed && (
         <WinOverlay
