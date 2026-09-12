@@ -770,6 +770,22 @@ h1, h2, h3, h4, .font-heading {
   filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.55));
 }
 
+.card-3d.card-locked-in {
+  filter: drop-shadow(0 0 18px rgba(245, 158, 11, 0.75));
+  animation: cardPulseGlow 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes cardPulseGlow {
+  0% {
+    filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.5));
+    transform: perspective(1000px) translateZ(10px) scale(1.02);
+  }
+  100% {
+    filter: drop-shadow(0 0 24px rgba(245, 158, 11, 0.9));
+    transform: perspective(1000px) translateZ(18px) scale(1.04);
+  }
+}
+
 .card-3d.card-unpicked {
   opacity: 0.82;
   filter: brightness(0.85) saturate(0.8);

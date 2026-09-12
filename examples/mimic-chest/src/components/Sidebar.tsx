@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { formatUnits, parseUnits } from 'viem';
 import { sound } from '../lib/audio';
+import type { RoundStep } from '../lib/mimic';
 
 export function Sidebar({
   balance,
@@ -16,6 +17,7 @@ export function Sidebar({
   isDemoMode,
   onResetDemoBalance,
   maxAllowedWager,
+  roundStep,
 }: {
   balance: bigint | undefined;
   decimals: number;
@@ -30,6 +32,7 @@ export function Sidebar({
   isDemoMode: boolean;
   onResetDemoBalance: () => void;
   maxAllowedWager?: bigint;
+  roundStep?: RoundStep;
 }) {
   const [soundEnabled, setSoundEnabled] = useState(sound.sfxEnabled);
   const [bgmEnabled, setBgmEnabled] = useState(sound.isBgmEnabled());
@@ -228,7 +231,13 @@ export function Sidebar({
         disabled={disabled || !parsedWager || isInsufficient}
         className="btn-open-chest"
       >
-        {disabled ? 'DRAWING...' : 'DRAW CARD'}
+        {roundStep === 'opening_session'
+          ? 'DEALING...'
+          : roundStep === 'awaiting_pick'
+            ? 'PICK A CARD...'
+            : roundStep === 'revealing'
+              ? 'REVEALING...'
+              : 'DRAW CARD'}
       </button>
 
       {/* Utility Bar */}

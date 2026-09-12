@@ -8,6 +8,8 @@ export const MAX_MULTIPLIER = 5n;
 export const SAMPLE_RANGE = 100;
 export const SAMPLE_REJECT = 200; // floor(256 / 100) * 100 = 200. Rejects >= 200 to eliminate modulo bias.
 
+export type RoundStep = 'idle' | 'opening_session' | 'awaiting_pick' | 'revealing' | 'settled';
+
 export type ChestTierType = 'MIMIC' | 'SILVER' | 'GOLD' | 'LEGENDARY';
 
 export type ChestTierInfo = {

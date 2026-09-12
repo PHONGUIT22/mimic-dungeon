@@ -11,21 +11,25 @@ import {
   outcomeFromPayout,
   outcomeFromRandomness,
   type MimicOutcome,
+  type RoundStep,
 } from './lib/mimic';
-import { CardStage, type CardAnimationState } from './components/CardStage';
+import { CardStage } from './components/CardStage';
 import { Sidebar } from './components/Sidebar';
 import { HistoryStrip } from './components/HistoryStrip';
 import { StatsStrip } from './components/StatsStrip';
 import { PaytableModal } from './components/PaytableModal';
 import { WinOverlay } from './components/WinOverlay';
 
+export type { RoundStep };
+
 type Round = {
   sessionKey: string;
   wager: bigint;
-  status: 'opening' | 'waiting' | 'landing' | 'done';
+  step: RoundStep;
   sessionId?: string;
   outcome?: MimicOutcome;
   payout?: bigint;
+  chosenIndex?: number;
 };
 
 type HistoryItem = {
@@ -141,9 +145,34 @@ export function App() {
     return computeMaxWager(snapshot, { maxMultiplierX: 5 });
   }, [snapshot]);
 
-  // Watch session updates in host snapshot to settle the round
+  // Handle card pick by player during awaiting_pick phase
+  const handleCardPick = useCallback((index: number) => {
+    setRound(current => {
+      if (!current || current.step !== 'awaiting_pick' || current.chosenIndex !== undefined) {
+        return current;
+      }
+
+      // If VRF outcome was already received from snapshot, transition to 'revealing' immediately
+      if (current.outcome) {
+        return {
+          ...current,
+          chosenIndex: index,
+          step: 'revealing',
+        };
+      }
+
+      // If VRF outcome is not yet resolved, lock the chosen index and wait in 'awaiting_pick'
+      return {
+        ...current,
+        chosenIndex: index,
+      };
+    });
+  }, []);
+
+  // Watch session updates in host snapshot to resolve randomness
   useEffect(() => {
-    if (!round || round.status !== 'waiting' || !snapshot) return;
+    if (!round || !snapshot) return;
+    if (round.step !== 'opening_session' && round.step !== 'awaiting_pick') return;
 
     const row = snapshot.sessions.items.find(item => item.sessionKey === round.sessionKey);
     if (!row || !(row.isSettled || isTerminalPhase(row.phase))) return;
@@ -185,31 +214,58 @@ export function App() {
 
     const rowPayout = row.payout !== undefined ? BigInt(row.payout) : outcome.payout;
 
-    // Immediately commit to history so Stats and History strip update in real time!
-    recordOutcomeToHistory(round.sessionKey, round.wager, outcome);
+    setRound(current => {
+      if (!current || current.sessionKey !== round.sessionKey) return current;
 
-    setRound(current =>
-      current && current.sessionKey === round.sessionKey
-        ? {
-            ...current,
-            status: 'landing',
-            sessionId: row.sessionId,
-            outcome,
-            payout: rowPayout,
-          }
-        : current,
+      // If player has already picked a card, transition to 'revealing' now!
+      // If player hasn't picked yet, stay in 'awaiting_pick' with outcome ready
+      const nextStep: RoundStep =
+        current.chosenIndex !== undefined
+          ? 'revealing'
+          : current.step === 'opening_session'
+            ? 'awaiting_pick'
+            : current.step;
+
+      return {
+        ...current,
+        sessionId: row.sessionId,
+        outcome,
+        payout: rowPayout,
+        step: nextStep,
+      };
+    });
+  }, [snapshot, round?.sessionKey, round?.step, round?.wager]);
+
+  // Fallback auto-pick if outcome is settled from VRF and player is idle
+  useEffect(() => {
+    if (
+      !round ||
+      round.step !== 'awaiting_pick' ||
+      !round.outcome ||
+      round.chosenIndex !== undefined
+    ) {
+      return;
+    }
+
+    const autoTimer = setTimeout(
+      () => {
+        handleCardPick(1); // Auto-pick center card
+      },
+      fastMode ? 250 : 8000,
     );
-  }, [snapshot, round, recordOutcomeToHistory]);
+
+    return () => clearTimeout(autoTimer);
+  }, [round?.step, round?.outcome, round?.chosenIndex, fastMode, handleCardPick]);
 
   // Stuck watchdog: unfreeze if session hangs > 20s
   useEffect(() => {
-    if (!round || round.status !== 'waiting') return;
+    if (!round || (round.step !== 'opening_session' && round.step !== 'awaiting_pick')) return;
     const timer = setTimeout(() => {
       setError('Session timed out waiting for randomness fulfillment.');
       setRound(null);
     }, 20000);
     return () => clearTimeout(timer);
-  }, [round]);
+  }, [round?.sessionKey, round?.step]);
 
   // Consecutive win streak tracker (Rune Resonance)
   const currentStreak = useMemo(() => {
@@ -224,34 +280,45 @@ export function App() {
     return count;
   }, [history]);
 
-  // Host reveal outcome synchronization & animation completion
+  // Host reveal outcome synchronization & settlement completion
   const hostApiRef = useRef(hostApi);
   hostApiRef.current = hostApi;
 
   useEffect(() => {
-    if (!round || !round.outcome) return;
-    if (round.status !== 'landing') return;
+    if (!round || round.step !== 'revealing' || !round.outcome) return;
 
-    // Card reveal celebration: 1.5s in normal mode (to allow 400ms near-miss flip), 450ms in fast mode
-    const animDuration = fastMode ? 450 : 1500;
+    // Card reveal celebration: 1.4s in normal mode (to allow 400ms near-miss flip + celebration), 450ms in fast mode
+    const animDuration = fastMode ? 450 : 1400;
 
     const animTimer = setTimeout(() => {
-      setRound(current =>
-        current && current.sessionKey === round.sessionKey
-          ? { ...current, status: 'done' }
-          : current,
-      );
-
-      // MANDATORY REQUIREMENT: revealOutcome immediately when animation ends to credit balance
+      // 1. MANDATORY: revealOutcome on hostApi to credit guest balance
       if (round.sessionId) {
         void hostApiRef.current?.revealOutcome({ sessionId: round.sessionId }).catch(err => {
           console.warn('[Mimic Dungeon] revealOutcome notice:', err);
         });
       }
+
+      // 2. Commit outcome to history (updates StatsStrip, HistoryStrip, and currentStreak!)
+      recordOutcomeToHistory(round.sessionKey, round.wager, round.outcome);
+
+      // 3. Transition to settled state
+      setRound(current =>
+        current && current.sessionKey === round.sessionKey
+          ? { ...current, step: 'settled' }
+          : current,
+      );
     }, animDuration);
 
     return () => clearTimeout(animTimer);
-  }, [round?.status, round?.sessionKey, round?.sessionId, round?.outcome, fastMode]);
+  }, [
+    round?.step,
+    round?.sessionKey,
+    round?.sessionId,
+    round?.outcome,
+    round?.wager,
+    fastMode,
+    recordOutcomeToHistory,
+  ]);
 
   const handleOpenChest = useCallback(async () => {
     if (!hostApi) return;
@@ -277,7 +344,7 @@ export function App() {
     }
 
     const pendingKey = `pending:${Date.now()}`;
-    setRound({ sessionKey: pendingKey, wager: parsed, status: 'opening' });
+    setRound({ sessionKey: pendingKey, wager: parsed, step: 'opening_session' });
 
     try {
       const { sessionKey } = await hostApi.openSession({
@@ -285,9 +352,10 @@ export function App() {
         gameData: encodeGameData(),
       });
 
+      // When openSession succeeds and VRF starts resolving, enter awaiting_pick
       setRound(current =>
         current?.sessionKey === pendingKey
-          ? { ...current, sessionKey, status: 'waiting' }
+          ? { ...current, sessionKey, step: 'awaiting_pick' }
           : current,
       );
     } catch (cause) {
@@ -296,14 +364,7 @@ export function App() {
     }
   }, [hostApi, wagerInput, decimals, balance]);
 
-  const animationState: CardAnimationState =
-    !round
-      ? 'idle'
-      : round.status === 'opening' || round.status === 'waiting'
-        ? 'opening'
-        : 'revealed';
-
-  const isBusy = round !== null && round.status !== 'done';
+  const isBusy = round !== null && round.step !== 'settled';
 
   return (
     <div className="mimic-app">
@@ -350,6 +411,7 @@ export function App() {
             isDemoMode={isDemoMode}
             onResetDemoBalance={resetDemoBalance}
             maxAllowedWager={maxAllowedWager}
+            roundStep={round?.step ?? 'idle'}
           />
 
           {/* Right Stage Column */}
@@ -369,11 +431,13 @@ export function App() {
 
             {/* 3D Fate Card Stage Viewport */}
             <CardStage
-              state={animationState}
+              step={round?.step ?? 'idle'}
+              chosenIndex={round?.chosenIndex ?? null}
               outcome={round?.outcome ?? null}
               wager={round?.wager ?? 0n}
               fastMode={fastMode}
               streak={currentStreak}
+              onCardPick={handleCardPick}
             />
 
             {/* Live History Ticker Strip */}
@@ -388,7 +452,7 @@ export function App() {
       {/* Modals & Overlays */}
       <PaytableModal isOpen={paytableOpen} onClose={() => setPaytableOpen(false)} />
 
-      {round?.outcome && round.status === 'done' && !winDismissed && (
+      {round?.outcome && round.step === 'settled' && round.outcome.won && !winDismissed && (
         <WinOverlay
           outcome={round.outcome}
           payout={round.payout ?? 0n}

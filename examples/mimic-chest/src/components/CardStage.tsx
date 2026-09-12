@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
   type MimicOutcome,
   type DisplayCard,
+  type RoundStep,
   getCardForOutcome,
   generateNearMissCards,
 } from '../lib/mimic';
@@ -17,21 +18,27 @@ export type SpreadState =
   | 'near_miss'
   | 'done';
 
-export function CardStage({
-  state,
-  outcome,
-  wager = 0n,
-  fastMode,
-  streak = 0,
-  onCardPick,
-}: {
-  state: CardAnimationState;
+export interface CardStageProps {
+  step?: RoundStep;
+  state?: CardAnimationState;
+  chosenIndex?: number | null;
   outcome: MimicOutcome | null;
   wager?: bigint;
   fastMode: boolean;
   streak?: number;
   onCardPick?: (index: number) => void;
-}) {
+}
+
+export function CardStage({
+  step,
+  state,
+  chosenIndex = null,
+  outcome,
+  wager = 0n,
+  fastMode,
+  streak = 0,
+  onCardPick,
+}: CardStageProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // 3-Card spread internal state
@@ -105,8 +112,16 @@ export function CardStage({
   }, [streak]);
 
   // 1. Transition into 'dealing' when a new wager begins (state === 'opening')
+  // Sync selectedIdx if chosenIndex is provided from props
   useEffect(() => {
-    if (state === 'opening') {
+    if (chosenIndex !== undefined && chosenIndex !== null) {
+      setSelectedIdx(chosenIndex);
+    }
+  }, [chosenIndex]);
+
+  // 1. Synchronize lifecycle step transitions
+  useEffect(() => {
+    if (step === 'opening_session' || state === 'opening') {
       setSpreadState('dealing');
       setSelectedIdx(null);
       setFlipped([false, false, false]);
@@ -121,31 +136,38 @@ export function CardStage({
       );
 
       return () => clearTimeout(dealTimer);
-    } else if (state === 'idle') {
+    } else if (step === 'awaiting_pick') {
+      setSpreadState(prev => (prev === 'dealing' ? prev : 'awaiting_pick'));
+    } else if (step === 'idle' || state === 'idle') {
       setSpreadState('idle');
       setSelectedIdx(null);
       setFlipped([false, false, false]);
       setCards([null, null, null]);
+    } else if (step === 'settled') {
+      setSpreadState('done');
+      setFlipped([true, true, true]);
     }
-  }, [state, fastMode]);
+  }, [step, state, fastMode]);
+
+  const effectiveSelectedIdx = chosenIndex !== null && chosenIndex !== undefined ? chosenIndex : selectedIdx;
 
   // 2. Handle card selection by player (or auto-pick in fastMode / timeout)
   const handleCardClick = useCallback(
     (idx: number) => {
-      if (spreadState !== 'awaiting_pick' || selectedIdx !== null) return;
+      if (spreadState !== 'awaiting_pick' || effectiveSelectedIdx !== null) return;
       sound.playCardSelect();
       setSelectedIdx(idx);
       onCardPick?.(idx);
     },
-    [spreadState, selectedIdx, onCardPick],
+    [spreadState, effectiveSelectedIdx, onCardPick],
   );
 
   // 3. Fallback auto-pick if outcome is settled but player hasn't picked after delay
   useEffect(() => {
     if (
-      (state === 'revealed' || outcome !== null) &&
+      (step === 'revealing' || state === 'revealed' || outcome !== null) &&
       spreadState === 'awaiting_pick' &&
-      selectedIdx === null
+      effectiveSelectedIdx === null
     ) {
       const autoTimer = setTimeout(
         () => {
@@ -155,12 +177,20 @@ export function CardStage({
       );
       return () => clearTimeout(autoTimer);
     }
-  }, [state, outcome, spreadState, selectedIdx, fastMode, handleCardClick]);
+  }, [step, state, outcome, spreadState, effectiveSelectedIdx, fastMode, handleCardClick]);
 
   // 4. Reveal sequence once a card is selected and outcome is ready
   useEffect(() => {
-    if (selectedIdx === null || !outcome) return;
-    if (spreadState !== 'awaiting_pick' && spreadState !== 'dealing') return;
+    const activeIdx = chosenIndex !== null && chosenIndex !== undefined ? chosenIndex : selectedIdx;
+    if (activeIdx === null || !outcome) return;
+
+    const isRevealTriggered =
+      step === 'revealing' ||
+      state === 'revealed' ||
+      ((spreadState === 'awaiting_pick' || spreadState === 'dealing') && activeIdx !== null && outcome);
+
+    if (!isRevealTriggered) return;
+    if (spreadState === 'revealing' || spreadState === 'near_miss' || spreadState === 'done') return;
 
     // Populate actual card at selected slot and near-miss cards at unpicked slots
     const actualCard =
@@ -171,19 +201,20 @@ export function CardStage({
     let dummyIndex = 0;
     const newCards: [DisplayCard, DisplayCard, DisplayCard] = [null as any, null as any, null as any];
     for (let i = 0; i < 3; i++) {
-      if (i === selectedIdx) {
+      if (i === activeIdx) {
         newCards[i] = actualCard;
       } else {
         newCards[i] = dummyCards[dummyIndex++];
       }
     }
     setCards(newCards);
+    setSelectedIdx(activeIdx);
 
     // STEP A: Flip selected card forward immediately
     setSpreadState('revealing');
     setFlipped(prev => {
       const next = [...prev] as [boolean, boolean, boolean];
-      next[selectedIdx] = true;
+      next[activeIdx] = true;
       return next;
     });
 
@@ -205,7 +236,7 @@ export function CardStage({
     // Spawn particle burst at selected card
     const canvas = canvasRef.current;
     if (canvas) {
-      const xPercent = selectedIdx === 0 ? 0.25 : selectedIdx === 1 ? 0.5 : 0.75;
+      const xPercent = activeIdx === 0 ? 0.25 : activeIdx === 1 ? 0.5 : 0.75;
       spawnParticles(outcome.tierIndex, canvas.width * xPercent, canvas.height * 0.44);
     }
 
@@ -236,7 +267,7 @@ export function CardStage({
     );
 
     return () => clearTimeout(nearMissTimer);
-  }, [selectedIdx, outcome, wager, spreadState, fastMode, spawnParticles]);
+  }, [step, state, chosenIndex, selectedIdx, outcome, wager, spreadState, fastMode, spawnParticles]);
 
   // Particle Canvas Render Loop
   useEffect(() => {
@@ -321,7 +352,8 @@ export function CardStage({
   };
 
   // Outcome banner styling
-  const chosenCard = selectedIdx !== null ? cards[selectedIdx] : null;
+  const activePickIdx = chosenIndex !== null && chosenIndex !== undefined ? chosenIndex : selectedIdx;
+  const chosenCard = activePickIdx !== null ? cards[activePickIdx] : null;
   const outcomeTier = chosenCard ? chosenCard.tierIndex : outcome ? outcome.tierIndex : 0;
   const badgeClass =
     outcomeTier === 0
@@ -363,7 +395,7 @@ export function CardStage({
         <div className="cards-spread">
           {[0, 1, 2].map(slotIndex => {
             const isFlipped = flipped[slotIndex];
-            const isPicked = selectedIdx === slotIndex;
+            const isPicked = activePickIdx === slotIndex;
             const cardData = cards[slotIndex];
             const isAwaiting = spreadState === 'awaiting_pick';
             const isDealing = spreadState === 'dealing';
@@ -394,8 +426,8 @@ export function CardStage({
                   className={`card-3d ${isFlipped ? 'flipped' : ''} ${
                     fastMode ? 'fast-flip' : ''
                   } ${isDealing ? 'card-dealing' : ''} ${isPicked ? 'card-picked' : ''} ${
-                    isFlipped && !isPicked ? 'card-unpicked' : ''
-                  }`}
+                    isPicked && !isFlipped ? 'card-locked-in' : ''
+                  } ${isFlipped && !isPicked ? 'card-unpicked' : ''}`}
                   style={{
                     transform: transformStyle || undefined,
                     animationDelay: `${slotIndex * 110}ms`,
@@ -420,10 +452,16 @@ export function CardStage({
                       </div>
 
                       <div className="card-back-title">
-                        {isAwaiting ? 'PICK CARD' : 'ARCANA'}
+                        {isPicked && !isFlipped ? 'LOCKED IN' : isAwaiting ? 'PICK CARD' : 'ARCANA'}
                       </div>
                       <div className="card-back-sub">
-                        {slotIndex === 0 ? 'LEFT' : slotIndex === 1 ? 'CENTER' : 'RIGHT'}
+                        {isPicked && !isFlipped
+                          ? 'AWAITING FATE'
+                          : slotIndex === 0
+                            ? 'LEFT'
+                            : slotIndex === 1
+                              ? 'CENTER'
+                              : 'RIGHT'}
                       </div>
                     </div>
                   </div>
