@@ -89,6 +89,362 @@ export const PAYTABLE: ChestTierInfo[] = [
   },
 ];
 
+export type CardEdition = 'standard' | 'foil' | 'holo' | 'polychrome';
+
+export type TarotCardId =
+  | 'THE_FOOL'
+  | 'THE_HANGED_MAN'
+  | 'THE_MIMIC'
+  | 'THE_MAGICIAN'
+  | 'THE_HERMIT'
+  | 'THE_EMPRESS'
+  | 'THE_SUN'
+  | 'THE_STAR'
+  | 'WHEEL_OF_FORTUNE'
+  | 'THE_WORLD'
+  | 'THE_SOUL'
+  | 'WHEEL_OF_DESTINY';
+
+export type TarotCardDef = {
+  id: TarotCardId;
+  name: string;
+  roman: string;
+  category: string;
+  tierIndex: number;
+  tier: ChestTierType;
+  multiplier: number;
+  multiplierText: string;
+  subtitle: string;
+  description: string;
+  iconType: string;
+};
+
+export type DisplayCard = {
+  cardId: TarotCardId;
+  name: string;
+  roman: string;
+  category: string;
+  tierIndex: number;
+  tier: ChestTierType;
+  multiplier: number;
+  multiplierText: string;
+  payout: bigint;
+  subtitle: string;
+  description: string;
+  edition: CardEdition;
+  isActualOutcome?: boolean;
+  roll?: number;
+  iconType: string;
+};
+
+export const TAROT_CATALOG: Record<TarotCardId, TarotCardDef> = {
+  // Tier 0 (0.0x - The Void)
+  THE_FOOL: {
+    id: 'THE_FOOL',
+    name: 'The Fool',
+    roman: '0',
+    category: 'The Void',
+    tierIndex: 0,
+    tier: 'MIMIC',
+    multiplier: 0,
+    multiplierText: 'x0.0',
+    subtitle: 'Zero sum oblivion',
+    description: 'A heedless leap into darkness. The abyss devours all.',
+    iconType: 'fool',
+  },
+  THE_HANGED_MAN: {
+    id: 'THE_HANGED_MAN',
+    name: 'The Hanged Man',
+    roman: 'XII',
+    category: 'The Void',
+    tierIndex: 0,
+    tier: 'MIMIC',
+    multiplier: 0,
+    multiplierText: 'x0.0',
+    subtitle: 'Bound by the abyss',
+    description: 'Suspended in twilight stillness. No return from the depths.',
+    iconType: 'hanged_man',
+  },
+  THE_MIMIC: {
+    id: 'THE_MIMIC',
+    name: 'The Devourer',
+    roman: 'XIII',
+    category: 'The Void',
+    tierIndex: 0,
+    tier: 'MIMIC',
+    multiplier: 0,
+    multiplierText: 'x0.0',
+    subtitle: 'Swallowed whole',
+    description: 'Vicious fangs snap shut from the shadows. Bet consumed.',
+    iconType: 'mimic',
+  },
+
+  // Tier 1 (1.2x - Silver)
+  THE_MAGICIAN: {
+    id: 'THE_MAGICIAN',
+    name: 'The Magician',
+    roman: 'I',
+    category: 'Silver Arcana',
+    tierIndex: 1,
+    tier: 'SILVER',
+    multiplier: 1.2,
+    multiplierText: 'x1.2',
+    subtitle: 'Arcane transmutation',
+    description: 'Transmutes raw ether into reliable silver gains.',
+    iconType: 'magician',
+  },
+  THE_HERMIT: {
+    id: 'THE_HERMIT',
+    name: 'The Hermit',
+    roman: 'IX',
+    category: 'Silver Arcana',
+    tierIndex: 1,
+    tier: 'SILVER',
+    multiplier: 1.2,
+    multiplierText: 'x1.2',
+    subtitle: 'Solitary fortune',
+    description: 'The ancient lantern reveals a safe and steady path.',
+    iconType: 'hermit',
+  },
+  THE_EMPRESS: {
+    id: 'THE_EMPRESS',
+    name: 'The Empress',
+    roman: 'III',
+    category: 'Silver Arcana',
+    tierIndex: 1,
+    tier: 'SILVER',
+    multiplier: 1.2,
+    multiplierText: 'x1.2',
+    subtitle: 'Bountiful blessing',
+    description: 'Fertile harvest showers modest silver bounty upon your stake.',
+    iconType: 'empress',
+  },
+
+  // Tier 2 (2.5x - Gold)
+  THE_SUN: {
+    id: 'THE_SUN',
+    name: 'The Sun',
+    roman: 'XIX',
+    category: 'Solar Arcana',
+    tierIndex: 2,
+    tier: 'GOLD',
+    multiplier: 2.5,
+    multiplierText: 'x2.5',
+    subtitle: 'Radiant gold payout',
+    description: 'Solar flares illuminate rich golden treasure.',
+    iconType: 'sun',
+  },
+  THE_STAR: {
+    id: 'THE_STAR',
+    name: 'The Star',
+    roman: 'XVII',
+    category: 'Solar Arcana',
+    tierIndex: 2,
+    tier: 'GOLD',
+    multiplier: 2.5,
+    multiplierText: 'x2.5',
+    subtitle: 'Guiding celestial light',
+    description: 'A brilliant constellation promises stellar golden victory.',
+    iconType: 'star',
+  },
+  WHEEL_OF_FORTUNE: {
+    id: 'WHEEL_OF_FORTUNE',
+    name: 'Wheel of Fortune',
+    roman: 'X',
+    category: 'Solar Arcana',
+    tierIndex: 2,
+    tier: 'GOLD',
+    multiplier: 2.5,
+    multiplierText: 'x2.5',
+    subtitle: 'Turn of the fates',
+    description: 'The great wheel halts on magnificent golden prosperity.',
+    iconType: 'wheel',
+  },
+
+  // Tier 3 (5.0x - Mythic Jackpot)
+  THE_WORLD: {
+    id: 'THE_WORLD',
+    name: 'The World',
+    roman: 'XXI',
+    category: 'Cosmic Arcana',
+    tierIndex: 3,
+    tier: 'LEGENDARY',
+    multiplier: 5.0,
+    multiplierText: 'x5.0',
+    subtitle: 'Cosmic ascension',
+    description: 'Complete cosmic mastery! Top 5.0x Mythic Jackpot.',
+    iconType: 'world',
+  },
+  THE_SOUL: {
+    id: 'THE_SOUL',
+    name: 'The Soul',
+    roman: '∞',
+    category: 'Cosmic Arcana',
+    tierIndex: 3,
+    tier: 'LEGENDARY',
+    multiplier: 5.0,
+    multiplierText: 'x5.0',
+    subtitle: 'Transcendent jackpot',
+    description: 'Ethereal immortality and celestial vault unlocked.',
+    iconType: 'soul',
+  },
+  WHEEL_OF_DESTINY: {
+    id: 'WHEEL_OF_DESTINY',
+    name: 'Wheel of Destiny',
+    roman: '★',
+    category: 'Cosmic Arcana',
+    tierIndex: 3,
+    tier: 'LEGENDARY',
+    multiplier: 5.0,
+    multiplierText: 'x5.0',
+    subtitle: 'Celestial sovereign',
+    description: 'The stars align for sovereign maximum jackpot reward.',
+    iconType: 'destiny',
+  },
+};
+
+export const CARDS_BY_TIER: Record<number, TarotCardDef[]> = {
+  0: [TAROT_CATALOG.THE_FOOL, TAROT_CATALOG.THE_HANGED_MAN, TAROT_CATALOG.THE_MIMIC],
+  1: [TAROT_CATALOG.THE_MAGICIAN, TAROT_CATALOG.THE_HERMIT, TAROT_CATALOG.THE_EMPRESS],
+  2: [TAROT_CATALOG.THE_SUN, TAROT_CATALOG.THE_STAR, TAROT_CATALOG.WHEEL_OF_FORTUNE],
+  3: [TAROT_CATALOG.THE_WORLD, TAROT_CATALOG.THE_SOUL, TAROT_CATALOG.WHEEL_OF_DESTINY],
+};
+
+/**
+ * Deterministically or pseudo-randomly assign card edition:
+ * Standard: 70%
+ * Foil: 15% (silver reflective border + spark glow)
+ * Holo: 10% (prismatic color-shifting background)
+ * Polychrome: 5% (vibrant rainbow gradient cycling sheen)
+ */
+export function sampleCardEdition(seed?: number | string): CardEdition {
+  let rand: number;
+  if (typeof seed === 'number') {
+    rand = (Math.abs(seed * 9301 + 49297) % 233280) / 233280;
+  } else if (typeof seed === 'string' && seed.length > 0) {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = (hash << 5) - hash + seed.charCodeAt(i);
+      hash |= 0;
+    }
+    rand = (Math.abs(hash) % 1000) / 1000;
+  } else {
+    rand = Math.random();
+  }
+
+  if (rand < 0.70) return 'standard';
+  if (rand < 0.85) return 'foil';
+  if (rand < 0.95) return 'holo';
+  return 'polychrome';
+}
+
+export function createDisplayCard(
+  cardDef: TarotCardDef,
+  wager: bigint,
+  edition: CardEdition = 'standard',
+  isActualOutcome: boolean = false,
+  roll?: number,
+): DisplayCard {
+  let payout: bigint;
+  if (cardDef.tierIndex === 0) {
+    payout = 0n;
+  } else if (cardDef.tierIndex === 1) {
+    payout = (wager * 12n) / 10n;
+  } else if (cardDef.tierIndex === 2) {
+    payout = (wager * 25n) / 10n;
+  } else {
+    payout = wager * 5n;
+  }
+
+  return {
+    cardId: cardDef.id,
+    name: cardDef.name,
+    roman: cardDef.roman,
+    category: cardDef.category,
+    tierIndex: cardDef.tierIndex,
+    tier: cardDef.tier,
+    multiplier: cardDef.multiplier,
+    multiplierText: cardDef.multiplierText,
+    payout,
+    subtitle: cardDef.subtitle,
+    description: cardDef.description,
+    edition,
+    isActualOutcome,
+    roll,
+    iconType: cardDef.iconType,
+  };
+}
+
+export function getCardForOutcome(
+  tierIndex: number,
+  roll: number,
+  wager: bigint,
+  randomnessSeed?: string,
+): DisplayCard {
+  const safeTier = Math.max(0, Math.min(3, tierIndex));
+  const tierCards = CARDS_BY_TIER[safeTier] || CARDS_BY_TIER[0];
+  const cardDef = tierCards[Math.abs(roll) % tierCards.length];
+  const edition = sampleCardEdition(randomnessSeed || roll);
+  return createDisplayCard(cardDef, wager, edition, true, roll);
+}
+
+/**
+ * Generates 2 complementary dummy cards for the unselected slots.
+ * If actualOutcome.tierIndex === 0, ensure at least one unpicked card is generated as Tier 2 or Tier 3
+ * to trigger maximum Near-Miss psychology!
+ */
+export function generateNearMissCards(actualOutcome: MimicOutcome, wager: bigint): DisplayCard[] {
+  const dummyCards: DisplayCard[] = [];
+  const actualTier = actualOutcome.tierIndex;
+
+  if (actualTier === 0) {
+    // Player lost (Tier 0). Near-Miss psychology:
+    // Slot 1 unpicked: Guarantee Tier 2 or Tier 3 (50% chance of Tier 3 Jackpot, 50% Tier 2 Gold)
+    const highTier = Math.random() < 0.5 ? 3 : 2;
+    const highTierCards = CARDS_BY_TIER[highTier];
+    const card1 = highTierCards[Math.floor(Math.random() * highTierCards.length)];
+    const edition1 = sampleCardEdition();
+    dummyCards.push(createDisplayCard(card1, wager, edition1, false));
+
+    // Slot 2 unpicked: Tier 1 (Silver 1.2x) or Tier 2 (Gold 2.5x)
+    const midTier = Math.random() < 0.6 ? 1 : 2;
+    const midTierCards = CARDS_BY_TIER[midTier];
+    const card2 = midTierCards[Math.floor(Math.random() * midTierCards.length)];
+    const edition2 = sampleCardEdition();
+    dummyCards.push(createDisplayCard(card2, wager, edition2, false));
+  } else if (actualTier === 1) {
+    // Player won Silver 1.2x: Show one Tier 2/3 (could have won more!) and one Tier 0 (dodged bullet)
+    const tier0Cards = CARDS_BY_TIER[0];
+    const card0 = tier0Cards[Math.floor(Math.random() * tier0Cards.length)];
+    dummyCards.push(createDisplayCard(card0, wager, sampleCardEdition(), false));
+
+    const higherTier = Math.random() < 0.4 ? 3 : 2;
+    const higherCards = CARDS_BY_TIER[higherTier];
+    const cardHigh = higherCards[Math.floor(Math.random() * higherCards.length)];
+    dummyCards.push(createDisplayCard(cardHigh, wager, sampleCardEdition(), false));
+  } else if (actualTier === 2) {
+    // Player won Gold 2.5x: Show one Tier 3 (Jackpot was right there!) and one Tier 0 (dodged loss)
+    const tier3Cards = CARDS_BY_TIER[3];
+    const card3 = tier3Cards[Math.floor(Math.random() * tier3Cards.length)];
+    dummyCards.push(createDisplayCard(card3, wager, sampleCardEdition(), false));
+
+    const tier0Cards = CARDS_BY_TIER[0];
+    const card0 = tier0Cards[Math.floor(Math.random() * tier0Cards.length)];
+    dummyCards.push(createDisplayCard(card0, wager, sampleCardEdition(), false));
+  } else {
+    // Player hit Tier 3 (5.0x Mythic Jackpot!): Show Tier 0 and Tier 1 (proving they found the only jackpot)
+    const tier0Cards = CARDS_BY_TIER[0];
+    const card0 = tier0Cards[Math.floor(Math.random() * tier0Cards.length)];
+    dummyCards.push(createDisplayCard(card0, wager, sampleCardEdition(), false));
+
+    const tier1Cards = CARDS_BY_TIER[1];
+    const card1 = tier1Cards[Math.floor(Math.random() * tier1Cards.length)];
+    dummyCards.push(createDisplayCard(card1, wager, sampleCardEdition(), false));
+  }
+
+  return dummyCards;
+}
+
 export type MimicOutcome = {
   tier: ChestTierType;
   tierIndex: number;
@@ -100,6 +456,8 @@ export type MimicOutcome = {
   description: string;
   won: boolean;
   randomness: HexString;
+  card?: DisplayCard;
+  edition?: CardEdition;
 };
 
 // abi.encode(tier, payout, randomness, roll)
@@ -158,6 +516,8 @@ export function outcomeFromRoll(roll: number, wager: bigint, randomness: HexStri
     multiplierBps = 50000n;
   }
 
+  const card = getCardForOutcome(tierInfo.tierIndex, roll, wager, randomness);
+
   return {
     tier: tierInfo.tier,
     tierIndex: tierInfo.tierIndex,
@@ -169,6 +529,8 @@ export function outcomeFromRoll(roll: number, wager: bigint, randomness: HexStri
     description: tierInfo.description,
     won: payout > 0n,
     randomness,
+    card,
+    edition: card.edition,
   };
 }
 
@@ -192,6 +554,8 @@ export function decodeGameState(gameState: HexString, _wager?: bigint): MimicOut
     const payout = BigInt(payoutBig);
     const randomness = (randomnessRaw as HexString) ?? '0x0';
     const tierInfo = PAYTABLE[tier] ?? PAYTABLE[0];
+    const wager = _wager ?? 0n;
+    const card = getCardForOutcome(tier, roll, wager, randomness);
 
     return {
       tier: tierInfo.tier,
@@ -204,6 +568,8 @@ export function decodeGameState(gameState: HexString, _wager?: bigint): MimicOut
       description: tierInfo.description,
       won: payout > 0n,
       randomness,
+      card,
+      edition: card.edition,
     };
   } catch {
     try {
@@ -220,6 +586,8 @@ export function decodeGameState(gameState: HexString, _wager?: bigint): MimicOut
       const roll = Number(rollNum);
       const payout = BigInt(payoutBig);
       const tierInfo = PAYTABLE[tier] ?? PAYTABLE[0];
+      const wager = _wager ?? 0n;
+      const card = getCardForOutcome(tier, roll, wager, '0x0');
 
       return {
         tier: tierInfo.tier,
@@ -232,6 +600,8 @@ export function decodeGameState(gameState: HexString, _wager?: bigint): MimicOut
         description: tierInfo.description,
         won: payout > 0n,
         randomness: '0x0',
+        card,
+        edition: card.edition,
       };
     } catch {
       return null;
