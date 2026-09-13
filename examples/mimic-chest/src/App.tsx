@@ -238,6 +238,67 @@ export function App() {
     return computeMaxWager(snapshot, { maxMultiplierX: 5 });
   }, [snapshot]);
 
+  // Helper to auto-clamp wager input directly against current balance and max bet limits
+  const handleWagerChange = useCallback(
+    (val: string) => {
+      if (val === '' || val === '.') {
+        setWagerInput(val);
+        return;
+      }
+      const clean = val.replace(/[^0-9.]/g, '');
+      const parts = clean.split('.');
+      const sanitized = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : clean;
+
+      try {
+        const parsed = parseUnits(sanitized, decimals);
+        const maxLimit =
+          balance !== undefined && maxAllowedWager !== undefined
+            ? (balance < maxAllowedWager ? balance : maxAllowedWager)
+            : balance !== undefined
+              ? balance
+              : maxAllowedWager;
+
+        if (maxLimit !== undefined && maxLimit > 0n && parsed > maxLimit) {
+          // Auto-clamp to max allowed limit (currentBalance or maxBetLimit)
+          setWagerInput(formatUnits(maxLimit, decimals));
+          return;
+        }
+      } catch {
+        // partial typing, e.g. "1."
+      }
+      setWagerInput(sanitized);
+    },
+    [balance, maxAllowedWager, decimals],
+  );
+
+  // Auto-clamp or adjust wager when balance changes after a round settles (or on balance update)
+  useEffect(() => {
+    if (balance === undefined) return;
+    if (round && (round.step === 'opening_session' || round.step === 'awaiting_pick' || round.step === 'revealing')) {
+      return; // Do not interrupt an active round in-flight
+    }
+
+    try {
+      const parsed = parseUnits(wagerInput.trim(), decimals);
+      const maxLimit =
+        maxAllowedWager !== undefined && maxAllowedWager < balance
+          ? maxAllowedWager
+          : balance;
+
+      if (balance === 0n) {
+        // If balance is empty, keep default minimum 1 TEST for display, but button is disabled
+        if (parsed === 0n) {
+          setWagerInput('1.00');
+        }
+      } else if (parsed > maxLimit && maxLimit > 0n) {
+        // If bet exceeds current balance, auto-reset/clamp to current balance
+        setWagerInput(formatUnits(maxLimit, decimals));
+      }
+    } catch {
+      // Invalid input format, ignore
+    }
+  }, [balance, maxAllowedWager, decimals, round?.step]);
+
   // Ref to cache resolved VRF outcome across renders and asynchronous events
   const resolvedOutcomeRef = useRef<{
     sessionKey: string;
@@ -587,7 +648,7 @@ export function App() {
             decimals={decimals}
             symbol={symbol}
             wagerInput={wagerInput}
-            onWagerChange={setWagerInput}
+            onWagerChange={handleWagerChange}
             onOpenChest={handleActionClick}
             disabled={isBusy}
             fastMode={fastMode}
