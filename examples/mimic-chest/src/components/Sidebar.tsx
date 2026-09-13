@@ -66,6 +66,13 @@ export function Sidebar({
     }
   }, [wagerInput, decimals]);
 
+  const maxEffectiveWager = useMemo(() => {
+    if (balance !== undefined && maxAllowedWager !== undefined) {
+      return balance < maxAllowedWager ? balance : maxAllowedWager;
+    }
+    return balance !== undefined ? balance : maxAllowedWager;
+  }, [balance, maxAllowedWager]);
+
   const handleHalf = () => {
     sound.playClick();
     if (!parsedWager) return;
@@ -76,27 +83,31 @@ export function Sidebar({
   const handleDouble = () => {
     sound.playClick();
     if (!parsedWager) return;
-    let dbl = parsedWager * 2n;
-    if (balance && dbl > balance) dbl = balance;
-    if (maxAllowedWager && dbl > maxAllowedWager) dbl = maxAllowedWager;
-    onWagerChange(formatUnits(dbl, decimals));
+    const dbl = parsedWager * 2n;
+    const finalVal = maxEffectiveWager && dbl > maxEffectiveWager ? maxEffectiveWager : dbl;
+    onWagerChange(formatUnits(finalVal, decimals));
   };
 
   const handleMax = () => {
     sound.playClick();
-    let max = balance ?? parseUnits('100', decimals);
-    if (maxAllowedWager && max > maxAllowedWager) max = maxAllowedWager;
-    onWagerChange(formatUnits(max, decimals));
+    if (balance !== undefined && balance > 0n) {
+      // All-in exactly Math.min(currentBalance, maxBetLimit)
+      const maxVal = maxEffectiveWager !== undefined && maxEffectiveWager > 0n ? maxEffectiveWager : balance;
+      onWagerChange(formatUnits(maxVal, decimals));
+    } else if (maxAllowedWager !== undefined) {
+      onWagerChange(formatUnits(maxAllowedWager, decimals));
+    } else {
+      onWagerChange(formatUnits(parseUnits('100', decimals), decimals));
+    }
   };
 
   const handleQuickAdd = (amount: number) => {
     sound.playClick();
     const current = parsedWager ?? 0n;
     const added = current + parseUnits(String(amount), decimals);
-    onWagerChange(formatUnits(added, decimals));
+    const finalVal = maxEffectiveWager && added > maxEffectiveWager ? maxEffectiveWager : added;
+    onWagerChange(formatUnits(finalVal, decimals));
   };
-
-  const isInsufficient = balance !== undefined && parsedWager !== null && parsedWager > balance;
 
   return (
     <aside className="mimic-sidebar">
@@ -147,14 +158,10 @@ export function Sidebar({
             onChange={e => onWagerChange(e.target.value)}
             disabled={disabled}
             placeholder="1.00"
-            className={`input-wager ${isInsufficient ? 'error' : ''}`}
+            className="input-wager"
           />
           <span className="input-unit">{symbol}</span>
         </div>
-
-        {isInsufficient && (
-          <span className="error-text">Insufficient balance for this bet.</span>
-        )}
 
         {/* Quick Bet Buttons: 1/2, 2x, Max */}
         <div className="quick-buttons-grid">
@@ -236,7 +243,13 @@ export function Sidebar({
           sound.playClick();
           onOpenChest();
         }}
-        disabled={roundStep === 'awaiting_pick' || disabled || !parsedWager || isInsufficient}
+        disabled={
+          roundStep === 'awaiting_pick' ||
+          disabled ||
+          !parsedWager ||
+          parsedWager <= 0n ||
+          (balance !== undefined && (parsedWager > balance || balance === 0n))
+        }
         className="btn-open-chest"
       >
         {roundStep === 'opening_session'
@@ -245,7 +258,9 @@ export function Sidebar({
             ? 'CHOOSE A CARD ABOVE'
             : roundStep === 'revealing'
               ? 'REVEALING...'
-              : 'DRAW CARD'}
+              : balance !== undefined && balance === 0n
+                ? 'INSUFFICIENT BALANCE'
+                : 'DRAW CARD'}
       </button>
 
       {/* Utility Bar */}
