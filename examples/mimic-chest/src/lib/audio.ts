@@ -13,11 +13,15 @@ class SoundManager {
 
   // BGM Ambient Synth state
   private isBgmPlaying: boolean = false;
+  private bgmCompressor: DynamicsCompressorNode | null = null;
   private droneOscs: OscillatorNode[] = [];
   private droneGains: GainNode[] = [];
-  private filterLfo: OscillatorNode | null = null;
-  private ambientTimer: number | null = null;
-  private readonly nominalBgmGain: number = 0.3; // Gentle, mystic ambient level (never piercing)
+  private padOscs: OscillatorNode[] = [];
+  private padGains: GainNode[] = [];
+  private bgmLfos: OscillatorNode[] = [];
+  private bgmTimer: number | null = null;
+  private bgmChordTimer: number | null = null;
+  private readonly nominalBgmGain: number = 0.28; // Rich, mystic occult ambient level (never piercing)
 
   constructor() {
     try {
@@ -119,9 +123,18 @@ class SoundManager {
         this.sfxGainNode.gain.value = this.sfxEnabled ? 1.0 : 0.0;
         this.sfxGainNode.connect(this.ctx.destination);
 
-        // Master BGM Bus with dedicated gentle ambient gain
+        // Master BGM Bus with dedicated anti-clipping dynamics compressor
+        this.bgmCompressor = this.ctx.createDynamicsCompressor();
+        this.bgmCompressor.threshold.setValueAtTime(-18, this.ctx.currentTime);
+        this.bgmCompressor.knee.setValueAtTime(12, this.ctx.currentTime);
+        this.bgmCompressor.ratio.setValueAtTime(4, this.ctx.currentTime);
+        this.bgmCompressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+        this.bgmCompressor.release.setValueAtTime(0.25, this.ctx.currentTime);
+
         this.bgmGainNode = this.ctx.createGain();
         this.bgmGainNode.gain.value = this.nominalBgmGain;
+
+        this.bgmCompressor.connect(this.bgmGainNode);
         this.bgmGainNode.connect(this.ctx.destination);
       }
     }
@@ -153,17 +166,19 @@ class SoundManager {
   }
 
   // ============================================================================
-  // DUNGEON AMBIENT SYNTH LOOP (Low Frequency, Mystic, Gentle 0.03 Gain)
+  // PROCEDURAL DARK OCCULT DRONE BGM (Balatro-inspired Ambient Web Audio Synth)
   // ============================================================================
 
   /**
-   * Starts a dark fantasy dungeon ambient synth loop.
-   * Utilizes low-frequency tuned drone oscillators (D2, A2, D3), a slow breathing
-   * lowpass filter LFO (subtle cave breeze), and periodic haunting resonant bell drops.
+   * Starts an ambient dark occult drone BGM composed of:
+   * 1. Deep Sub-bass foundation (45Hz - 60Hz) with lowpass filtering.
+   * 2. Slow-modulating Minor Chord Pads (Am7 / Dm7 / Em7) with breathing LFO.
+   * 3. Generative Mystic Chime / Harp Arpeggiator (Aeolian/Dorian pentatonic scale).
+   * All routed through master dynamics compressor to guarantee zero clipping.
    */
   public startBgm() {
     this.initContext();
-    if (!this.ctx || !this.bgmGainNode) return;
+    if (!this.ctx || !this.bgmCompressor || !this.bgmGainNode) return;
 
     if (this.isBgmPlaying) return;
     this.isBgmPlaying = true;
@@ -174,38 +189,32 @@ class SoundManager {
     // Fade in master BGM bus smoothly
     this.bgmGainNode.gain.cancelScheduledValues(now);
     this.bgmGainNode.gain.setValueAtTime(0.0001, now);
-    this.bgmGainNode.gain.linearRampToValueAtTime(this.nominalBgmGain, now + 0.5);
-
-    // 1. Resonant Master Dungeon Lowpass Filter
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(240, now);
-    filter.Q.setValueAtTime(2.5, now);
-    filter.connect(this.bgmGainNode);
-
-    // 2. Slow breathing LFO modulating the filter cutoff (14s cycle)
-    const lfo = ctx.createOscillator();
-    const lfoGain = ctx.createGain();
-    lfo.type = 'sine';
-    lfo.frequency.setValueAtTime(0.07, now); // ~14s period
-    lfoGain.gain.setValueAtTime(90, now); // Modulates filter between 150Hz and 330Hz
-    lfo.connect(lfoGain);
-    lfoGain.connect(filter.frequency);
-    lfo.start(now);
-    this.filterLfo = lfo;
-
-    // 3. Multi-voice Low Drone Oscillators (D2 = 73.42Hz, A2 = 110.0Hz, D3 = 146.83Hz)
-    const droneFreqs = [
-      { f: 73.42, type: 'sine' as OscillatorType, vol: 0.75, detune: 0 },
-      { f: 73.42, type: 'triangle' as OscillatorType, vol: 0.35, detune: 1.8 },
-      { f: 110.0, type: 'sine' as OscillatorType, vol: 0.50, detune: -1.2 },
-      { f: 146.83, type: 'sine' as OscillatorType, vol: 0.30, detune: 0.8 },
-    ];
+    this.bgmGainNode.gain.linearRampToValueAtTime(this.nominalBgmGain, now + 0.8);
 
     this.droneOscs = [];
     this.droneGains = [];
+    this.padOscs = [];
+    this.padGains = [];
+    this.bgmLfos = [];
 
-    droneFreqs.forEach(({ f, type, vol, detune }) => {
+    // ========================================================================
+    // LAYER 1: Deep Sub-Bass Occult Drone (45Hz - 60Hz low resonant foundation)
+    // ========================================================================
+    const subFilter = ctx.createBiquadFilter();
+    subFilter.type = 'lowpass';
+    subFilter.frequency.setValueAtTime(80, now);
+    subFilter.Q.setValueAtTime(2.0, now);
+    subFilter.connect(this.bgmCompressor);
+
+    // Drone voices: 55Hz (A1) sine + 55Hz triangle detuned + 82.4Hz (E2, fifth)
+    const subVoices = [
+      { f: 55.0, type: 'sine' as OscillatorType, vol: 0.85, detune: 0 },
+      { f: 55.0, type: 'triangle' as OscillatorType, vol: 0.35, detune: 2.2 },
+      { f: 82.41, type: 'sine' as OscillatorType, vol: 0.45, detune: -1.5 },
+      { f: 49.0, type: 'sine' as OscillatorType, vol: 0.50, detune: 1.0 }, // Sub rumble
+    ];
+
+    subVoices.forEach(({ f, type, vol, detune }) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
@@ -214,65 +223,200 @@ class SoundManager {
       osc.detune.setValueAtTime(detune, now);
 
       gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.linearRampToValueAtTime(vol, now + 1.2);
+      gain.gain.linearRampToValueAtTime(vol * 0.45, now + 1.5);
 
       osc.connect(gain);
-      gain.connect(filter);
+      gain.connect(subFilter);
       osc.start(now);
 
       this.droneOscs.push(osc);
       this.droneGains.push(gain);
     });
 
-    // 4. Periodic haunting cavern bell chime (D minor pentatonic: D4, F4, G4, A4, C5)
-    const bellNotes = [293.66, 349.23, 392.0, 440.0, 523.25];
-    let noteIndex = 0;
+    // ========================================================================
+    // LAYER 2: Slow-Modulating Minor Chord Occult Pads (Am7 / Dm7 / Em7)
+    // ========================================================================
+    const padFilter = ctx.createBiquadFilter();
+    padFilter.type = 'lowpass';
+    padFilter.frequency.setValueAtTime(320, now);
+    padFilter.Q.setValueAtTime(2.2, now);
+    padFilter.connect(this.bgmCompressor);
 
-    const playCavernBell = () => {
-      if (!this.isBgmPlaying || !this.ctx || !this.bgmGainNode) return;
+    // LFO: Slow breathing cycle (~15.4s period) modulating pad lowpass cutoff
+    const padLfo = ctx.createOscillator();
+    const padLfoGain = ctx.createGain();
+    padLfo.type = 'sine';
+    padLfo.frequency.setValueAtTime(0.065, now);
+    padLfoGain.gain.setValueAtTime(140, now); // Modulates filter between 180Hz and 460Hz
+    padLfo.connect(padLfoGain);
+    padLfoGain.connect(padFilter.frequency);
+    padLfo.start(now);
+    this.bgmLfos.push(padLfo);
+
+    // Occult chord progressions: Am7 -> Dm7 -> Em7 -> Am7
+    const chords = [
+      [110.0, 130.81, 164.81, 196.0], // Am7: A2, C3, E3, G3
+      [146.83, 174.61, 220.0, 261.63], // Dm7: D3, F3, A3, C4
+      [164.81, 196.0, 246.94, 293.66], // Em7: E3, G3, B3, D4
+      [110.0, 130.81, 164.81, 220.0],  // Am: A2, C3, E3, A3
+    ];
+    let currentChordIndex = 0;
+
+    // Instantiate pad oscillators (4 voices)
+    const activePadOscs: OscillatorNode[] = [];
+    const activePadGains: GainNode[] = [];
+
+    chords[0].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(freq, now);
+      osc.detune.setValueAtTime((i - 1.5) * 3, now); // Gentle chorus spread
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.18, now + 2.0);
+
+      osc.connect(gain);
+      gain.connect(padFilter);
+      osc.start(now);
+
+      activePadOscs.push(osc);
+      activePadGains.push(gain);
+      this.padOscs.push(osc);
+      this.padGains.push(gain);
+    });
+
+    // Chord progression cycle every 10 seconds with smooth cross-glide
+    const advanceChord = () => {
+      if (!this.isBgmPlaying || !this.ctx) return;
+      currentChordIndex = (currentChordIndex + 1) % chords.length;
+      const targetChord = chords[currentChordIndex];
       const t = this.ctx.currentTime;
-      const freq = bellNotes[noteIndex % bellNotes.length];
-      noteIndex = (noteIndex + 1 + Math.floor(Math.random() * 2)) % bellNotes.length;
+
+      activePadOscs.forEach((osc, i) => {
+        if (targetChord[i]) {
+          try {
+            osc.frequency.cancelScheduledValues(t);
+            osc.frequency.setValueAtTime(osc.frequency.value, t);
+            osc.frequency.exponentialRampToValueAtTime(targetChord[i], t + 3.5);
+          } catch {
+            // fallback
+          }
+        }
+      });
+    };
+
+    this.bgmChordTimer = window.setInterval(advanceChord, 10000);
+
+    // ========================================================================
+    // LAYER 3: Generative Mystic Chime / Harp Arpeggiator (Aeolian/Dorian Scale)
+    // ========================================================================
+    // Mystical Aeolian / Dorian pentatonic scale frequencies
+    const mysticScale = [
+      220.0,  // A3
+      261.63, // C4
+      293.66, // D4
+      329.63, // E4
+      392.0,  // G4
+      440.0,  // A4
+      523.25, // C5
+      587.33, // D5
+      659.25, // E5
+      783.99, // G5
+    ];
+
+    let arpIndex = 0;
+
+    const playMysticChime = () => {
+      if (!this.isBgmPlaying || !this.ctx || !this.bgmCompressor) return;
+      const t = this.ctx.currentTime;
+
+      // 20% chance of mystical silence/pause for breathing occult rhythm
+      if (Math.random() < 0.20) {
+        return;
+      }
+
+      // Procedurally select next note in scale with smooth stepping
+      const step = Math.random() < 0.6 ? 1 : Math.random() < 0.85 ? 2 : -1;
+      arpIndex = (arpIndex + step + mysticScale.length) % mysticScale.length;
+      const freq = mysticScale[arpIndex];
 
       const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      const bellFilter = this.ctx.createBiquadFilter();
+      const overtone = this.ctx.createOscillator();
+      const noteGain = this.ctx.createGain();
+      const chimeFilter = this.ctx.createBiquadFilter();
 
+      // Fundamental sine + subtle mystic shimmer overtone
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, t);
 
-      bellFilter.type = 'bandpass';
-      bellFilter.frequency.setValueAtTime(freq * 1.5, t);
-      bellFilter.Q.setValueAtTime(3.0, t);
+      overtone.type = 'triangle';
+      overtone.frequency.setValueAtTime(freq * 2, t);
+      overtone.detune.setValueAtTime(3, t);
 
-      // Soft mystical envelope: gentle 120ms attack, 2.2s dreamy decay
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.linearRampToValueAtTime(0.28, t + 0.12);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 2.4);
+      // Resonant bandpass filter to give ancient harp/bell acoustic resonance
+      chimeFilter.type = 'bandpass';
+      chimeFilter.frequency.setValueAtTime(freq * 1.4, t);
+      chimeFilter.Q.setValueAtTime(2.8, t);
 
-      osc.connect(bellFilter);
-      bellFilter.connect(gain);
-      gain.connect(this.bgmGainNode);
+      // Delicate envelope: 18ms soft attack, 650ms - 950ms exponential decay
+      const decayDuration = 0.65 + Math.random() * 0.3;
+      noteGain.gain.setValueAtTime(0.0001, t);
+      noteGain.gain.linearRampToValueAtTime(0.22, t + 0.018);
+      noteGain.gain.exponentialRampToValueAtTime(0.0001, t + decayDuration);
+
+      osc.connect(chimeFilter);
+      overtone.connect(chimeFilter);
+      chimeFilter.connect(noteGain);
+      noteGain.connect(this.bgmCompressor);
 
       osc.start(t);
-      osc.stop(t + 2.5);
+      overtone.start(t);
+      osc.stop(t + decayDuration + 0.05);
+      overtone.stop(t + decayDuration + 0.05);
+
+      // 30% chance of a subtle secondary echo / grace note 120ms later
+      if (Math.random() < 0.3) {
+        const echoTime = t + 0.12;
+        const echoOsc = this.ctx.createOscillator();
+        const echoGain = this.ctx.createGain();
+
+        const echoFreq = mysticScale[(arpIndex + 2) % mysticScale.length];
+        echoOsc.type = 'sine';
+        echoOsc.frequency.setValueAtTime(echoFreq, echoTime);
+
+        echoGain.gain.setValueAtTime(0.0001, echoTime);
+        echoGain.gain.linearRampToValueAtTime(0.10, echoTime + 0.015);
+        echoGain.gain.exponentialRampToValueAtTime(0.0001, echoTime + 0.5);
+
+        echoOsc.connect(echoGain);
+        echoGain.connect(this.bgmCompressor);
+
+        echoOsc.start(echoTime);
+        echoOsc.stop(echoTime + 0.55);
+      }
     };
 
-    // Play initial bell shortly after start, then loop every ~3.6s
-    setTimeout(playCavernBell, 800);
-    this.ambientTimer = window.setInterval(playCavernBell, 3600);
+    // Staggered arpeggiator timing (~2.2s - 2.8s dynamic interval)
+    setTimeout(playMysticChime, 600);
+    this.bgmTimer = window.setInterval(playMysticChime, 2400);
   }
 
   /**
-   * Stops the ambient BGM loop and cleans up all active audio nodes.
+   * Stops the ambient BGM loop with smooth fade-out and cleans up all active audio nodes.
    */
   public stopBgm() {
     if (!this.isBgmPlaying) return;
     this.isBgmPlaying = false;
 
-    if (this.ambientTimer) {
-      clearInterval(this.ambientTimer);
-      this.ambientTimer = null;
+    if (this.bgmTimer) {
+      clearInterval(this.bgmTimer);
+      this.bgmTimer = null;
+    }
+    if (this.bgmChordTimer) {
+      clearInterval(this.bgmChordTimer);
+      this.bgmChordTimer = null;
     }
 
     if (this.ctx && this.bgmGainNode) {
@@ -280,34 +424,48 @@ class SoundManager {
       try {
         this.bgmGainNode.gain.cancelScheduledValues(now);
         this.bgmGainNode.gain.setValueAtTime(this.bgmGainNode.gain.value, now);
-        this.bgmGainNode.gain.linearRampToValueAtTime(0.0001, now + 0.3);
+        this.bgmGainNode.gain.linearRampToValueAtTime(0.0001, now + 0.5);
       } catch {
         // safety
       }
     }
 
     setTimeout(() => {
+      // Clean up drone oscillators
       this.droneOscs.forEach(osc => {
         try {
           osc.stop();
           osc.disconnect();
         } catch {
-          // ignore already stopped
+          // ignore
         }
       });
       this.droneOscs = [];
       this.droneGains = [];
 
-      if (this.filterLfo) {
+      // Clean up pad oscillators
+      this.padOscs.forEach(osc => {
         try {
-          this.filterLfo.stop();
-          this.filterLfo.disconnect();
+          osc.stop();
+          osc.disconnect();
         } catch {
           // ignore
         }
-        this.filterLfo = null;
-      }
-    }, 350);
+      });
+      this.padOscs = [];
+      this.padGains = [];
+
+      // Clean up LFOs
+      this.bgmLfos.forEach(lfo => {
+        try {
+          lfo.stop();
+          lfo.disconnect();
+        } catch {
+          // ignore
+        }
+      });
+      this.bgmLfos = [];
+    }, 550);
   }
 
   // ============================================================================
