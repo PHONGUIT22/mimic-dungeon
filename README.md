@@ -40,7 +40,15 @@ Behind the scenes, cryptographic VRF entropy from the blockchain channels determ
   *(All edition variants are purely cosmetic to preserve strict contract RTP integrity).*
 - **Near-Miss Psychology**: When revealing **The Void (x0.0)** loss, the two unpicked cards flip with a staggered rhythm (350ms). One unpicked card is guaranteed to reveal a Tier 3 (x5.0) Jackpot branded with an animated **SO CLOSE! MISSED JACKPOT** stamp accompanied by a procedural sigh sound.
 - **Scoring Tally & Micro Screen Shake**: Multiplier numbers do not abruptly appear; they roll up with pitch-shifted synthesizer ticks, followed by an impactful camera shake on final payout resolution.
-- **Zero-File Procedural Web Audio**: Built entirely with native Web Audio API oscillators, bandpass filters, and harmonic sweeps. Zero MP3/WAV assets required.
+- **Zero-File Procedural Web Audio (Balatro Occult Ambient)**:
+  - **Occult Sub-Bass Drone (45Hz - 60Hz)**: Layered sine & triangle sub-oscillators routed through resonant lowpass filters for deep subterranean dungeon vibration.
+  - **Breathing Minor Pad Atmospheres**: Modulating $Am7 \rightarrow Dm7 \rightarrow Em7$ chords cycling with slow LFO filter cutoff sweeps ($0.065\text{Hz}$).
+  - **Generative Mystic Arpeggiator**: Procedural chime/harp synths in Aeolian & Dorian pentatonic scales with organic delays and soft exponential ramps.
+  - **Anti-Clipping Master Bus & SFX Ducking**: Integrated `DynamicsCompressorNode` and automatic $-75\%$ BGM ducking during major card reveals.
+  - **Zero External Audio Files**: Built entirely with native Web Audio API oscillators, bandpass filters, and harmonic sweeps. Zero MP3/WAV assets required.
+- **Proactive Wager Validation & One-Click MAX All-in**:
+  - **Instant MAX Clamp**: Calculates $\min(\text{Balance}, \text{MaxAllowedBet})$ for effortless All-in wagering.
+  - **Automatic Live Clamping**: Re-evaluates and auto-clamps input values on balance updates without disruptive error dialogs.
 
 ### 3. ⚖️ Certified Provably Fair & Zero Modulo Bias
 - **Smart Contract Compliance**: Fully implements the canonical [`ICasinoGameV2`](./simulator/contracts/MimicChest.sol) interface.
