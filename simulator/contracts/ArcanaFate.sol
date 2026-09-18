@@ -4,27 +4,27 @@ pragma solidity ^0.8.30;
 import { ICasinoGameV2, SessionContext, SessionPhase, StepResult } from './interfaces/ICasinoGameV2.sol';
 
 /**
- * @title MimicChest
- * @notice Instant single-round casino game for Chain Jam Hackathon.
+ * @title ArcanaFate
+ * @notice Instant single-round cosmic roguelike casino game powered by deterministic procedural sacred sigils.
  *
- * Game mechanics ("Mimic Dungeon"):
- * - Player wagers an amount and opens a mystery chest.
+ * Game mechanics ("Arcana Fate"):
+ * - Player wagers an amount and reveals ancient mystic cards.
  * - Randomness from VRF (32 bytes) is sampled with Rejection Sampling to eliminate Modulo Bias.
  *
  * Outcome paytable:
- * - 50% Mimic Monster  (x0.0) -> Loss
- * - 30% Silver Chest   (x1.2) -> Small win (wager * 12 / 10)
- * - 16% Gold Chest     (x2.5) -> Big win (wager * 25 / 10)
- * -  4% Legendary Relic (x5.0) -> Jackpot (wager * 5)
+ * - 50% The Void   (x0.0) -> Loss (wager * 0)
+ * - 30% Silver Rune (x1.2) -> Small win (wager * 12 / 10)
+ * - 16% Golden Sun  (x2.5) -> Big win (wager * 25 / 10)
+ * -  4% Destiny     (x5.0) -> Jackpot (wager * 5)
  *
  * Total RTP = 0.50*0 + 0.30*1.2 + 0.16*2.5 + 0.04*5.0 = 0 + 0.36 + 0.40 + 0.20 = 96.00% (exact).
  */
-contract MimicChest is ICasinoGameV2 {
-  enum ChestTier {
-    MIMIC,     // 0: x0 (50%)
+contract ArcanaFate is ICasinoGameV2 {
+  enum CardTier {
+    VOID,      // 0: x0 (50%)
     SILVER,    // 1: x1.2 (30%)
     GOLD,      // 2: x2.5 (16%)
-    LEGENDARY  // 3: x5.0 (4%)
+    DESTINY    // 3: x5.0 (4%)
   }
 
   uint8 internal constant SAMPLE_RANGE = 100;
@@ -41,8 +41,8 @@ contract MimicChest is ICasinoGameV2 {
   // Top tier multiplier: 5.0x
   uint256 internal constant MAX_MULTIPLIER = 5;
 
-  error MimicChest__NoPlayerAction();
-  error MimicChest__InvalidWager();
+  error ArcanaFate__NoPlayerAction();
+  error ArcanaFate__InvalidWager();
 
   /**
    * @notice Unbiased rejection sampling from VRF bytes32 seed.
@@ -66,28 +66,28 @@ contract MimicChest is ICasinoGameV2 {
   }
 
   /**
-   * @notice Maps sample roll in [0, 99] to chest tier and payout.
+   * @notice Maps sample roll in [0, 99] to card tier and payout.
    */
   function _resolveOutcome(uint256 wager, uint8 roll)
     internal
     pure
-    returns (ChestTier tier, uint256 payout)
+    returns (CardTier tier, uint256 payout)
   {
     if (roll < 50) {
-      // 0..49: 50% Mimic Monster (0x)
-      tier = ChestTier.MIMIC;
+      // 0..49: 50% The Void (0x)
+      tier = CardTier.VOID;
       payout = 0;
     } else if (roll < 80) {
-      // 50..79: 30% Silver Chest (1.2x)
-      tier = ChestTier.SILVER;
+      // 50..79: 30% Silver Rune (1.2x)
+      tier = CardTier.SILVER;
       payout = (wager * 12) / 10;
     } else if (roll < 96) {
-      // 80..95: 16% Gold Chest (2.5x)
-      tier = ChestTier.GOLD;
+      // 80..95: 16% Golden Sun (2.5x)
+      tier = CardTier.GOLD;
       payout = (wager * 25) / 10;
     } else {
-      // 96..99: 4% Legendary Relic (5.0x)
-      tier = ChestTier.LEGENDARY;
+      // 96..99: 4% Destiny (5.0x)
+      tier = CardTier.DESTINY;
       payout = wager * MAX_MULTIPLIER;
     }
   }
@@ -96,7 +96,7 @@ contract MimicChest is ICasinoGameV2 {
     uint256 wager,
     bytes calldata /* gameData */
   ) external pure returns (uint256 maxEscrowStake, uint256 maxReservedProfit) {
-    if (wager == 0) revert MimicChest__InvalidWager();
+    if (wager == 0) revert ArcanaFate__InvalidWager();
     maxEscrowStake = wager;
     // Max payout is 5x, so vault risk = 5x - 1x = 4x
     maxReservedProfit = wager * (MAX_MULTIPLIER - 1);
@@ -115,7 +115,7 @@ contract MimicChest is ICasinoGameV2 {
       uint256 subJackpotVarianceScaled
     )
   {
-    if (wager == 0) revert MimicChest__InvalidWager();
+    if (wager == 0) revert ArcanaFate__InvalidWager();
     maxPayout = wager * MAX_MULTIPLIER;
     probabilityWad = TOP_TIER_PROBABILITY_WAD;
     expectedPayout = (wager * RTP_BPS) / BASIS_POINTS;
@@ -137,7 +137,7 @@ contract MimicChest is ICasinoGameV2 {
     SessionContext calldata,
     bytes calldata
   ) external pure returns (StepResult memory) {
-    revert MimicChest__NoPlayerAction();
+    revert ArcanaFate__NoPlayerAction();
   }
 
   function onRandomness(
@@ -145,7 +145,7 @@ contract MimicChest is ICasinoGameV2 {
     bytes32 randomness
   ) external pure returns (StepResult memory stepResult) {
     uint8 roll = _sampleRoll(randomness);
-    (ChestTier tier, uint256 payout) = _resolveOutcome(ctx.wagerBase, roll);
+    (CardTier tier, uint256 payout) = _resolveOutcome(ctx.wagerBase, roll);
 
     // Encode result into gameState: (tier, payout, randomness, roll)
     stepResult.newGameState = abi.encode(uint8(tier), payout, randomness, roll);

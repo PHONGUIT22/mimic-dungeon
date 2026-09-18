@@ -571,7 +571,7 @@ const GAME_STATE_PARAMS = [
 ] as const;
 
 /**
- * Rejection Sampling: identical mirror of MimicChest.sol `_sampleRoll`.
+ * Rejection Sampling: identical mirror of ArcanaFate.sol `_sampleRoll`.
  * Traverses bytes, rejects any byte >= SAMPLE_REJECT (200), expands via keccak256 if needed.
  */
 export function sampleRollFromRandomness(randomBytes: Uint8Array): number {

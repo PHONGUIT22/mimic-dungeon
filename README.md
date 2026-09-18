@@ -51,7 +51,7 @@ Behind the scenes, cryptographic VRF entropy from the blockchain channels determ
   - **Automatic Live Clamping**: Re-evaluates and auto-clamps input values on balance updates without disruptive error dialogs.
 
 ### 3. ⚖️ Certified Provably Fair & Zero Modulo Bias
-- **Smart Contract Compliance**: Fully implements the canonical [`ICasinoGameV2`](./simulator/contracts/MimicChest.sol) interface.
+- **Smart Contract Compliance**: Fully implements the canonical [`ICasinoGameV2`](./simulator/contracts/ArcanaFate.sol) interface.
 - **Unbiased Rejection Sampling**: Implements strict rejection sampling on 32-byte VRF seeds:
   ```solidity
   uint8 internal constant SAMPLE_RANGE = 100;
@@ -104,7 +104,7 @@ casino-sdk/
 │       └── index.html                  # Includes mandatory Chain Jam widget script
 ├── simulator/
 │   └── contracts/
-│       ├── MimicChest.sol         # Production smart contract (ICasinoGameV2)
+│       ├── ArcanaFate.sol         # Production smart contract (ICasinoGameV2)
 │       └── interfaces/
 │           └── ICasinoGameV2.sol  # Canonical casino game interface
 └── src/                           # @chain/casino-sdk core library (guest & host)

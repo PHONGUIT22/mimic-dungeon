@@ -74,7 +74,7 @@ export function useCasinoHost(): UseCasinoHostReturn {
         gameAddress: DUMMY_GAME_ADDRESS,
         manifest: {
           schemaVersion: 1,
-          gameId: 'MimicChest',
+          gameId: 'ArcanaFate',
           apiVersion: 1,
           defaultLocale: 'en',
           locales: {

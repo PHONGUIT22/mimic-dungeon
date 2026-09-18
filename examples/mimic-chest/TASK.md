@@ -6,7 +6,7 @@ You are tasked with upgrading the frontend and presentation layer of `Arcana Fat
 Transform the single-card draw into an engaging, high-retention 3-card "Arcana Pack" spread with Balatro aesthetic, "Illusion of Control" interactive picking, "Near-Miss" psychological reveal, dynamic foil editions, and pitch-shifted tally sound design.
 
 ### STRICT CONSTRAINTS & INVARIANTS (CRITICAL)
-1. DO NOT touch or alter `solidity/contracts/MimicChest.sol`.
+1. DO NOT touch or alter `solidity/contracts/ArcanaFate.sol`.
 2. DO NOT change the mathematical RTP (96.00%) or the 4 core tiers:
    - Tier 0: The Void (x0.0) - 50%
    - Tier 1: Silver Rune (x1.2) - 30%
