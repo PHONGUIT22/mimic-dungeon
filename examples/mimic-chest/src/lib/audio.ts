@@ -161,6 +161,7 @@ class SoundManager {
 
   public handleUserInteraction() {
     this.initContext();
+    this.getNoiseBuffer(); // Pre-warm procedural noise buffer on first interaction to eliminate draw lag
     if (this.bgmEnabled && !this.isBgmPlaying) {
       this.startBgm();
     }
@@ -218,15 +219,16 @@ class SoundManager {
   }
 
   /**
-   * Generates or retrieves a 1-second white noise buffer for realistic paper textures.
+   * Generates or retrieves a lightweight 0.25-second white noise buffer for realistic paper textures.
    */
   private getNoiseBuffer(): AudioBuffer | null {
     if (!this.ctx) return null;
     if (!this.noiseBuffer || this.noiseBuffer.sampleRate !== this.ctx.sampleRate) {
       const sampleRate = this.ctx.sampleRate;
-      const buffer = this.ctx.createBuffer(1, sampleRate, sampleRate);
+      const numSamples = Math.min(Math.floor(sampleRate * 0.25), 12000);
+      const buffer = this.ctx.createBuffer(1, numSamples, sampleRate);
       const data = buffer.getChannelData(0);
-      for (let i = 0; i < sampleRate; i++) {
+      for (let i = 0; i < numSamples; i++) {
         data[i] = Math.random() * 2 - 1;
       }
       this.noiseBuffer = buffer;

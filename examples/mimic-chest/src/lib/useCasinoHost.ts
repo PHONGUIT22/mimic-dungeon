@@ -15,6 +15,57 @@ import {
 const DEFAULT_DEMO_BALANCE = 1000n * 10n ** 18n; // 1,000.00 TEST tokens
 const DUMMY_GAME_ADDRESS = '0x1234567890123456789012345678901234567890' as const;
 
+const isTopLevel = typeof window !== 'undefined' && window.self === window.top;
+
+function createDemoSnapshot(balance: bigint, sessions: HostSnapshotV1['sessions']['items']): HostSnapshotV1 {
+  return {
+    apiVersion: 1,
+    integration: {
+      chainId: 31337,
+      slug: 'mimic-chest',
+      gameAddress: DUMMY_GAME_ADDRESS,
+      manifest: {
+        schemaVersion: 1,
+        gameId: 'ArcanaFate',
+        apiVersion: 1,
+        defaultLocale: 'en',
+        locales: {
+          en: {
+            name: 'Arcana Fate',
+            description: 'Instant sacred sigils & mystic cards casino game with 96.00% RTP.',
+          },
+        },
+      },
+    },
+    ui: {
+      theme: 'dark',
+      locale: 'en',
+    },
+    token: {
+      symbol: 'TEST',
+      decimals: 18,
+      iconUrl: '/assets/chest-icon.svg',
+    },
+    balances: {
+      smartVaultBalance: balance.toString(),
+    },
+    casino: {
+      availableLiquidity: (500000000n * 10n ** 18n).toString(),
+      maxBetRiskBps: 100,
+      maxAllowedReservedProfit: (50000n * 10n ** 18n).toString(),
+      maxBetAmount: (1000n * 10n ** 18n).toString(),
+    },
+    sessions: {
+      items: sessions,
+    },
+    wallet: {
+      status: 'ready',
+      address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+      smartVaultAddress: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',
+    },
+  };
+}
+
 export type UseCasinoHostReturn = {
   hostApi: HostApiV1 | null;
   snapshot: HostSnapshotV1 | null;
@@ -24,8 +75,7 @@ export type UseCasinoHostReturn = {
 
 export function useCasinoHost(): UseCasinoHostReturn {
   const [hostApi, setHostApi] = useState<HostApiV1 | null>(null);
-  const [snapshot, setSnapshot] = useState<HostSnapshotV1 | null>(null);
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(() => isTopLevel);
 
   // Demo balance and sessions
   const [demoBalance, setDemoBalance] = useState<bigint>(() => {
@@ -35,6 +85,13 @@ export function useCasinoHost(): UseCasinoHostReturn {
     } catch {
       return DEFAULT_DEMO_BALANCE;
     }
+  });
+
+  const [snapshot, setSnapshot] = useState<HostSnapshotV1 | null>(() => {
+    if (isTopLevel) {
+      return createDemoSnapshot(demoBalance, []);
+    }
+    return null;
   });
 
   const demoBalanceRef = useRef(demoBalance);
@@ -66,64 +123,15 @@ export function useCasinoHost(): UseCasinoHostReturn {
       // sandboxed
     }
 
-    const demoSnapshot: HostSnapshotV1 = {
-      apiVersion: 1,
-      integration: {
-        chainId: 31337,
-        slug: 'mimic-chest',
-        gameAddress: DUMMY_GAME_ADDRESS,
-        manifest: {
-          schemaVersion: 1,
-          gameId: 'ArcanaFate',
-          apiVersion: 1,
-          defaultLocale: 'en',
-          locales: {
-            en: {
-              name: 'Arcana Fate',
-              description: 'Instant sacred sigils & mystic cards casino game with 96.00% RTP.',
-            },
-          },
-        },
-      },
-      ui: {
-        theme: 'dark',
-        locale: 'en',
-      },
-      token: {
-        symbol: 'TEST',
-        decimals: 18,
-        iconUrl: '/assets/chest-icon.svg',
-      },
-      balances: {
-        smartVaultBalance: demoBalance.toString(),
-      },
-      casino: {
-        availableLiquidity: (500000000n * 10n ** 18n).toString(),
-        maxBetRiskBps: 100,
-        maxAllowedReservedProfit: (50000n * 10n ** 18n).toString(),
-        maxBetAmount: (1000n * 10n ** 18n).toString(),
-      },
-      sessions: {
-        items: demoSessions,
-      },
-      wallet: {
-        status: 'ready',
-        address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
-        smartVaultAddress: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',
-      },
-    };
-
-    setSnapshot(demoSnapshot);
+    setSnapshot(createDemoSnapshot(demoBalance, demoSessions));
   }, [isDemoMode, demoBalance, demoSessions]);
 
   // Dual mode detection: Penpal bridge vs Standalone
   useEffect(() => {
     let mounted = true;
-    const inIframe = typeof window !== 'undefined' && window.self !== window.top;
 
-    if (!inIframe) {
-      // Standalone mode: immediately activate Demo Mode
-      console.log('[Mimic Dungeon] Standalone mode detected — activating Demo Mode (1,000 TEST tokens).');
+    if (isTopLevel) {
+      // Standalone mode: immediately activate Demo Mode without 2000ms delay
       setIsDemoMode(true);
       return;
     }

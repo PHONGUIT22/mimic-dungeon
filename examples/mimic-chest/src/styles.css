@@ -1152,6 +1152,8 @@ h1, h2, h3, h4, .font-heading {
   perspective: 1200px;
   -webkit-perspective: 1200px;
   position: relative;
+  will-change: transform;
+  transform: translateZ(0);
   transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -2568,7 +2570,7 @@ h1, h2, h3, h4, .font-heading {
   max-width: 165px;
   max-height: 165px;
   display: block;
-  filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 14px currentColor);
+  filter: drop-shadow(0 0 7px currentColor);
 }
 
 /* Bottom Medieval Gothic Ribbon Banner */

@@ -116,6 +116,62 @@ export function CardStage({
       shape: 'circle' | 'star' | 'square';
     }>
   >([]);
+  const animIdRef = useRef<number | null>(null);
+
+  const startParticleLoop = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    if (animIdRef.current !== null) return; // Loop is already actively running
+
+    const render = () => {
+      const particles = particlesRef.current;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (particles.length === 0) {
+        animIdRef.current = null;
+        return; // Terminate loop when idle to avoid frame lag during draw
+      }
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.12; // gentle gravity
+        p.alpha -= p.decay;
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+
+        if (p.shape === 'circle') {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (p.shape === 'star') {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * 0.8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillRect(p.x - p.size, p.y - 1, p.size * 2, 2);
+          ctx.fillRect(p.x - 1, p.y - p.size, 2, p.size * 2);
+        } else {
+          ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+        }
+        ctx.restore();
+      }
+
+      animIdRef.current = requestAnimationFrame(render);
+    };
+
+    animIdRef.current = requestAnimationFrame(render);
+  }, []);
 
   const spawnParticles = useCallback((tierIndex: number, originX: number, originY: number, edition?: CardEdition) => {
     const canvas = canvasRef.current;
@@ -163,7 +219,8 @@ export function CardStage({
       });
     }
     particlesRef.current = newParticles;
-  }, [streak]);
+    startParticleLoop();
+  }, [streak, startParticleLoop]);
 
   // 1. Transition into 'dealing' when a new wager begins (state === 'opening')
   // Sync selectedIdx if chosenIndex is provided from props
@@ -411,55 +468,14 @@ export function CardStage({
     };
   }, [step, state, chosenIndex, selectedIdx, outcome, wager, spreadState, fastMode, spawnParticles, onScreenShake]);
 
-  // Particle Canvas Render Loop
+  // Clean up active particle animation frame on unmount
   useEffect(() => {
-    let animId: number;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const render = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const particles = particlesRef.current;
-
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.12; // gentle gravity
-        p.alpha -= p.decay;
-
-        if (p.alpha <= 0) {
-          particles.splice(i, 1);
-          continue;
-        }
-
-        ctx.save();
-        ctx.globalAlpha = p.alpha;
-        ctx.fillStyle = p.color;
-
-        if (p.shape === 'circle') {
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          ctx.fill();
-        } else if (p.shape === 'star') {
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * 0.8, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillRect(p.x - p.size, p.y - 1, p.size * 2, 2);
-          ctx.fillRect(p.x - 1, p.y - p.size, 2, p.size * 2);
-        } else {
-          ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
-        }
-        ctx.restore();
+    return () => {
+      if (animIdRef.current !== null) {
+        cancelAnimationFrame(animIdRef.current);
+        animIdRef.current = null;
       }
-
-      animId = requestAnimationFrame(render);
     };
-
-    render();
-    return () => cancelAnimationFrame(animId);
   }, []);
 
   // Sync canvas dimensions
