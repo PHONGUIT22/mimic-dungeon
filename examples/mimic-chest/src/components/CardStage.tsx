@@ -706,105 +706,115 @@ export function CardStage({
                     </div>
                   </div>
 
-                  {/* CARD FRONT (MẶT TRƯỚC: NGHỆ THUẬT TAROT & BADGES BALATRO) */}
+                  {/* CARD FRONT (90s VINTAGE FANTASY TCG / RPG TABLETOP AESTHETIC) */}
                   <div
-                    className={`card-face card-front card-tier-${cardData ? cardData.tierIndex : 0} card-edition-${
-                      cardData ? cardData.edition : 'standard'
-                    } ${cardData?.edition === 'polychrome' ? 'is-polychrome' : ''} ${
-                      cardData?.edition === 'holo' ? 'is-holo' : ''
-                    } ${cardData?.edition === 'foil' ? 'is-foil' : ''}`}
+                    className={`card-face card-front tcg-card-frame tcg-frame-tier-${
+                      cardData ? cardData.tierIndex : 0
+                    } card-edition-${cardData ? cardData.edition : 'standard'} ${
+                      cardData?.edition === 'polychrome' ? 'is-polychrome' : ''
+                    } ${cardData?.edition === 'holo' ? 'is-holo' : ''} ${
+                      cardData?.edition === 'foil' ? 'is-foil' : ''
+                    }`}
                   >
                     {/* Dynamic Edition Sheen Overlays */}
                     {cardData?.edition === 'polychrome' && <div className="card-polychrome-sheen" />}
                     {cardData?.edition === 'holo' && <div className="card-holo-sheen" />}
                     {(cardData?.edition === 'foil' || cardData?.tierIndex === 3) && <div className="card-foil-sheen" />}
 
-                    {/* Header Bar */}
-                    <div className="card-header-bar">
-                      <span className="card-roman">{cardData?.roman ?? '✦'}</span>
+                    {/* Outer Embossed Metallic Pinstripe */}
+                    <div className="tcg-frame-pinstripe">
+                      {/* Inner Aged Parchment / Ivory Art Inlay Plate */}
+                      <div className="tcg-parchment-plate">
+                        {/* Top RPG Crest & Badges Header */}
+                        <div className="tcg-top-header">
+                          {/* Circular Embossed Crest Medallion */}
+                          <div className={`tcg-crest-emblem crest-tier-${cardData ? cardData.tierIndex : 0}`}>
+                            <span className="crest-numeral">{cardData?.roman ?? '✦'}</span>
+                          </div>
 
-                      <div className="header-badges-cluster">
-                        {/* Pick Status Badge */}
-                        <span className={`badge-pick-status ${isPicked ? 'pick-active' : 'pick-missed'}`}>
-                          {isPicked ? 'YOUR PICK' : 'MISSED'}
-                        </span>
+                          {/* Pick & Edition Badges Cluster */}
+                          <div className="tcg-badges-cluster">
+                            <span className={`badge-pick-status ${isPicked ? 'pick-active' : 'pick-missed'}`}>
+                              {isPicked ? 'YOUR PICK' : 'MISSED'}
+                            </span>
+                            {cardData && cardData.edition !== 'standard' && (
+                              <span className={`card-edition-badge edition-${cardData.edition}`}>
+                                {cardData.edition === 'polychrome' ? '★ POLYCHROME ★' : cardData.edition.toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
 
-                        {/* Balatro Edition Badge */}
-                        {cardData && cardData.edition !== 'standard' && (
-                          <span className={`card-edition-badge edition-${cardData.edition}`}>
-                            {cardData.edition === 'polychrome' ? '★ POLYCHROME ★' : cardData.edition.toUpperCase()}
-                          </span>
+                        {/* Center Vintage Fantasy Art Window */}
+                        <div className="tcg-art-window">
+                          <div className={`tcg-art-frame-inner art-tier-${cardData ? cardData.tierIndex : 0}`}>
+                            {cardData && (
+                              <ProceduralSigil
+                                seed={cardData.sigilSeed ?? cardData.roll ?? slotIndex}
+                                tier={cardData.tierIndex}
+                                className="card-svg"
+                              />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Floating Balatro Edition Modifier Popup */}
+                        {isPicked && editionTriggered && cardData && cardData.edition !== 'standard' && cardData.editionBonus && (
+                          <div className={`edition-modifier-popup edition-popup-${cardData.edition}`}>
+                            <span className="edition-pop-icon">
+                              {cardData.edition === 'polychrome' ? '★' : cardData.edition === 'holo' ? '✦' : '✧'}
+                            </span>
+                            <span className="edition-pop-text">{cardData.editionBonus.bonusText}</span>
+                            <span className="edition-pop-icon">
+                              {cardData.edition === 'polychrome' ? '★' : cardData.edition === 'holo' ? '✦' : '✧'}
+                            </span>
+                          </div>
                         )}
-                      </div>
 
-                      <span
-                        className={`card-multiplier-pill ${
-                          isPicked && isTallying ? 'tally-counting' : ''
-                        } ${isPicked && isTallyDone ? 'tally-final' : ''} ${
-                          isPicked && editionTriggered && cardData?.edition !== 'standard'
-                            ? `edition-active-pill edition-pill-${cardData?.edition}`
-                            : ''
-                        }`}
-                      >
-                        {isPicked && isTallying && tallyMultiplier !== null
-                          ? `x${tallyMultiplier.toFixed(1)}`
-                          : (cardData?.multiplierText ?? 'x0.0')}
-                      </span>
-                    </div>
-
-                    {/* Center Artwork */}
-                    <div className="card-artwork-box">
-                      <div className="card-art-wrap">
-                        {cardData && (
-                          <ProceduralSigil
-                            seed={cardData.sigilSeed ?? cardData.roll ?? slotIndex}
-                            tier={cardData.tierIndex}
-                            className="card-svg"
-                          />
+                        {/* Near-Miss / Missed Jackpot Stamp for The Void (x0.0) loss */}
+                        {isFlipped && !isPicked && outcome?.tierIndex === 0 && cardData && cardData.tierIndex === 3 && (
+                          <div className="near-miss-stamp">
+                            <div className="stamp-inner">
+                              <span className="stamp-stars">★ ★ ★</span>
+                              <span className="stamp-main">SO CLOSE!</span>
+                              <span className="stamp-sub">MISSED JACKPOT</span>
+                            </div>
+                          </div>
                         )}
-                      </div>
-                    </div>
 
-                    {/* Floating Balatro Edition Modifier Popup */}
-                    {isPicked && editionTriggered && cardData && cardData.edition !== 'standard' && cardData.editionBonus && (
-                      <div className={`edition-modifier-popup edition-popup-${cardData.edition}`}>
-                        <span className="edition-pop-icon">
-                          {cardData.edition === 'polychrome' ? '★' : cardData.edition === 'holo' ? '✦' : '✧'}
-                        </span>
-                        <span className="edition-pop-text">{cardData.editionBonus.bonusText}</span>
-                        <span className="edition-pop-icon">
-                          {cardData.edition === 'polychrome' ? '★' : cardData.edition === 'holo' ? '✦' : '✧'}
-                        </span>
-                      </div>
-                    )}
+                        {/* Flaming Polychrome Edition Banner */}
+                        {cardData?.edition === 'polychrome' && (
+                          <div className="polychrome-fire-banner">
+                            <span className="fire-text">★ POLYCHROME EDITION ★</span>
+                          </div>
+                        )}
 
-                    {/* Near-Miss / Missed Jackpot Stamp for The Void (x0.0) loss */}
-                    {isFlipped && !isPicked && outcome?.tierIndex === 0 && cardData && cardData.tierIndex === 3 && (
-                      <div className="near-miss-stamp">
-                        <div className="stamp-inner">
-                          <span className="stamp-stars">★ ★ ★</span>
-                          <span className="stamp-main">SO CLOSE!</span>
-                          <span className="stamp-sub">MISSED JACKPOT</span>
+                        {/* Bottom Medieval Gothic Ribbon Banner */}
+                        <div className="tcg-gothic-banner">
+                          <div className="tcg-banner-main">
+                            <div className="tcg-card-title" title={cardData?.name ?? 'ARCANA'}>
+                              {cardData?.name ?? 'ARCANA'}
+                            </div>
+
+                            {/* Large Prominent Multiplier Pill */}
+                            <div
+                              className={`tcg-multiplier-shield shield-tier-${cardData ? cardData.tierIndex : 0} ${
+                                isPicked && isTallying ? 'tally-counting' : ''
+                              } ${isPicked && isTallyDone ? 'tally-final' : ''} ${
+                                isPicked && editionTriggered && cardData?.edition !== 'standard'
+                                  ? `edition-active-pill edition-pill-${cardData?.edition}`
+                                  : ''
+                              }`}
+                            >
+                              <span className="shield-val">
+                                {isPicked && isTallying && tallyMultiplier !== null
+                                  ? `x${tallyMultiplier.toFixed(1)}`
+                                  : (cardData?.multiplierText ?? 'x0.0')}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    )}
-
-                    {/* Flaming Polychrome Edition Banner */}
-                    {cardData?.edition === 'polychrome' && (
-                      <div className="polychrome-fire-banner">
-                        <span className="fire-text">★ POLYCHROME EDITION ★</span>
-                      </div>
-                    )}
-
-                    {/* Footer Info */}
-                    <div className="card-footer-info">
-                      <div className="card-main-title">{cardData?.name ?? 'ARCANA'}</div>
-                      <div className="card-sub-desc">{cardData?.subtitle ?? 'Turn of fate'}</div>
-                      {isPicked && isFlipped && cardData && (
-                        <div className={`card-oracle-whisper whisper-tier-${cardData.tierIndex}`}>
-                          “{getDarkOracleQuote(cardData.tierIndex, cardData.sigilSeed ?? cardData.roll)}”
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>

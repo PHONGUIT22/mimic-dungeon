@@ -84,14 +84,14 @@ export function Sidebar({
   }, [balance, maxAllowedWager]);
 
   const handleHalf = () => {
-    sound.playClick();
+    sound.playChipClink();
     if (!parsedWager) return;
     const half = parsedWager / 2n;
     if (half > 0n) onWagerChange(formatUnits(half, decimals));
   };
 
   const handleDouble = () => {
-    sound.playClick();
+    sound.playChipClink();
     if (!parsedWager) return;
     const dbl = parsedWager * 2n;
     const finalVal = maxEffectiveWager && dbl > maxEffectiveWager ? maxEffectiveWager : dbl;
@@ -99,7 +99,7 @@ export function Sidebar({
   };
 
   const handleMax = () => {
-    sound.playClick();
+    sound.playChipClink();
     if (balance !== undefined && balance > 0n) {
       // All-in exactly Math.min(currentBalance, maxBetLimit)
       const maxVal = maxEffectiveWager !== undefined && maxEffectiveWager > 0n ? maxEffectiveWager : balance;
@@ -112,7 +112,7 @@ export function Sidebar({
   };
 
   const handleQuickAdd = (amount: number) => {
-    sound.playClick();
+    sound.playChipClink();
     const current = parsedWager ?? 0n;
     const added = current + parseUnits(String(amount), decimals);
     const finalVal = maxEffectiveWager && added > maxEffectiveWager ? maxEffectiveWager : added;

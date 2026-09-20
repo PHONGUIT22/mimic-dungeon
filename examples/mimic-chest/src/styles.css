@@ -715,7 +715,7 @@ h1, h2, h3, h4, .font-heading {
 .chest-stage-container {
   width: 100%;
   flex: 1;
-  min-height: 460px;
+  min-height: clamp(480px, 58vh, 560px);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -1131,33 +1131,34 @@ h1, h2, h3, h4, .font-heading {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
+  gap: 22px;
   width: 100%;
-  max-width: 660px;
-  margin: 10px auto 4px;
-  perspective: 1000px;
-  -webkit-perspective: 1000px;
+  max-width: 760px;
+  margin: 12px auto 0;
+  perspective: 1200px;
+  -webkit-perspective: 1200px;
 }
 
 @media (max-width: 640px) {
   .cards-spread {
     gap: 8px;
+    margin: 6px auto 0;
   }
 }
 
 .card-slot-3d {
-  width: 170px;
-  height: 260px;
-  perspective: 1000px;
-  -webkit-perspective: 1000px;
+  width: clamp(175px, 24vw, 220px);
+  height: clamp(275px, 36vw, 340px);
+  perspective: 1200px;
+  -webkit-perspective: 1200px;
   position: relative;
   transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 @media (max-width: 640px) {
   .card-slot-3d {
-    width: 104px;
-    height: 164px;
+    width: clamp(100px, 30vw, 120px);
+    height: clamp(160px, 47vw, 190px);
   }
 }
 
@@ -1569,27 +1570,34 @@ h1, h2, h3, h4, .font-heading {
 .card-back {
   transform: rotateY(0deg) translateZ(1px);
   -webkit-transform: rotateY(0deg) translateZ(1px);
-  background: radial-gradient(circle at 50% 50%, #151d2a 0%, #0a0e16 85%);
-  border: 2px solid #b45309;
-  padding: 10px;
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+  background: linear-gradient(145deg, #fcd34d 0%, #d97706 25%, #78350f 55%, #b45309 80%, #fef08a 100%);
+  border: 2px solid #f59e0b;
+  padding: 5px;
   display: flex;
   flex-direction: column;
   box-shadow: 
-    0 16px 36px rgba(0, 0, 0, 0.7),
-    inset 0 0 20px rgba(180, 83, 9, 0.25);
+    0 16px 36px rgba(0, 0, 0, 0.75),
+    inset 0 0 16px rgba(245, 158, 11, 0.55),
+    inset 0 2px 4px rgba(254, 240, 138, 0.8),
+    inset 0 -2px 6px rgba(69, 26, 3, 0.95);
 }
 
 .card-back-border {
   flex: 1;
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
   border: 1.5px solid #d97706;
-  border-radius: 6px;
+  border-radius: 4px;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 8px;
-  background: rgba(0, 0, 0, 0.25);
+  padding: 10px 8px;
+  background: radial-gradient(circle at 50% 50%, #171124 0%, #0a0614 85%);
+  box-shadow: 
+    inset 0 0 22px rgba(0, 0, 0, 0.9),
+    inset 0 0 10px rgba(180, 83, 9, 0.35);
 }
 
 .card-corner {
@@ -1597,6 +1605,7 @@ h1, h2, h3, h4, .font-heading {
   font-size: 11px;
   color: #f59e0b;
   line-height: 1;
+  text-shadow: 0 0 4px rgba(245, 158, 11, 0.7);
 }
 
 .corner-tl { top: 4px; left: 6px; }
@@ -1605,8 +1614,8 @@ h1, h2, h3, h4, .font-heading {
 .corner-br { bottom: 4px; right: 6px; }
 
 .card-back-mandala {
-  width: 140px;
-  height: 140px;
+  width: clamp(135px, 18vw, 175px);
+  height: clamp(135px, 18vw, 175px);
   margin: auto 0;
   display: flex;
   align-items: center;
@@ -1617,30 +1626,31 @@ h1, h2, h3, h4, .font-heading {
 .mandala-svg {
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.4));
+  filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.6));
 }
 
 .card-drawing .mandala-svg {
   animation: mandalaSpin 3s linear infinite;
-  filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.85));
+  filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.95));
 }
 
 .card-back-title {
-  font-family: 'Rubik', sans-serif;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 3px;
   color: #fcd34d;
   text-transform: uppercase;
-  margin-top: 4px;
+  margin-top: 6px;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.85);
 }
 
 .card-back-sub {
   font-family: monospace;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: #92400e;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #b45309;
   text-transform: uppercase;
 }
 
@@ -2302,6 +2312,366 @@ h1, h2, h3, h4, .font-heading {
   animation: foilShimmer 3.5s ease infinite;
   pointer-events: none;
   z-index: 1;
+}
+
+/* ==========================================================================
+   90s VINTAGE FANTASY TCG / RPG TABLETOP CARD ARCHITECTURE
+   ========================================================================== */
+
+.tcg-card-frame {
+  position: absolute !important;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px);
+  padding: 6px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  transform: rotateY(180deg) translateZ(1px);
+  -webkit-transform: rotateY(180deg) translateZ(1px);
+  user-select: none;
+  overflow: hidden;
+}
+
+/* Metallic Chamfered Outer Borders (By Tier) */
+.tcg-frame-tier-0 {
+  background: linear-gradient(145deg, #381559 0%, #170726 35%, #0d0217 70%, #290d45 100%);
+  border: 2.5px solid #7c3aed;
+  box-shadow: 
+    inset 0 0 16px rgba(124, 58, 237, 0.5),
+    inset 0 2px 4px rgba(192, 132, 252, 0.4),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.95);
+}
+
+.tcg-frame-tier-1 {
+  background: linear-gradient(145deg, #94a3b8 0%, #475569 30%, #1e293b 65%, #64748b 100%);
+  border: 2.5px solid #cbd5e1;
+  box-shadow: 
+    inset 0 0 16px rgba(203, 213, 225, 0.45),
+    inset 0 2px 4px rgba(255, 255, 255, 0.8),
+    inset 0 -2px 6px rgba(15, 23, 42, 0.9);
+}
+
+.tcg-frame-tier-2 {
+  background: linear-gradient(145deg, #fcd34d 0%, #d97706 25%, #78350f 55%, #b45309 80%, #fef08a 100%);
+  border: 2.5px solid #f59e0b;
+  box-shadow: 
+    inset 0 0 18px rgba(245, 158, 11, 0.6),
+    inset 0 2px 4px rgba(254, 240, 138, 0.85),
+    inset 0 -2px 6px rgba(69, 26, 3, 0.95);
+}
+
+.tcg-frame-tier-3 {
+  background: linear-gradient(145deg, #f5d0fe 0%, #c084fc 25%, #6b21a8 55%, #9333ea 80%, #fae8ff 100%);
+  border: 2.5px solid #d8b4fe;
+  box-shadow: 
+    inset 0 0 22px rgba(192, 132, 252, 0.75),
+    inset 0 2px 5px rgba(255, 255, 255, 0.9),
+    inset 0 -2px 7px rgba(15, 5, 25, 0.95);
+}
+
+/* Metallic Embossed Pinstripe */
+.tcg-frame-pinstripe {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+  padding: 2.5px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.tcg-frame-tier-0 .tcg-frame-pinstripe {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.65) 0%, rgba(30, 8, 48, 0.85) 50%, rgba(147, 51, 234, 0.55) 100%);
+}
+
+.tcg-frame-tier-1 .tcg-frame-pinstripe {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(51, 65, 85, 0.85) 50%, rgba(226, 232, 240, 0.65) 100%);
+}
+
+.tcg-frame-tier-2 .tcg-frame-pinstripe {
+  background: linear-gradient(135deg, rgba(254, 240, 138, 0.85) 0%, rgba(146, 64, 14, 0.85) 50%, rgba(245, 158, 11, 0.75) 100%);
+}
+
+.tcg-frame-tier-3 .tcg-frame-pinstripe {
+  background: linear-gradient(135deg, rgba(245, 208, 254, 0.9) 0%, rgba(88, 28, 135, 0.85) 50%, rgba(216, 180, 254, 0.75) 100%);
+}
+
+/* Vintage Parchment / Ivory Art Inlay Plate */
+.tcg-parchment-plate {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
+  background: linear-gradient(180deg, #fcf9ee 0%, #f6eedb 35%, #ebdcc4 75%, #dfcdae 100%);
+  border: 1px solid rgba(139, 94, 60, 0.45);
+  box-shadow: 
+    inset 0 0 16px rgba(120, 53, 15, 0.18),
+    inset 0 1px 3px rgba(255, 255, 255, 0.85);
+  padding: 8px 8px 7px 8px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  overflow: hidden;
+}
+
+/* Top RPG Header Bar */
+.tcg-top-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 30px;
+  position: relative;
+  z-index: 6;
+  gap: 6px;
+}
+
+/* Circular Embossed Crest Medallion */
+.tcg-crest-emblem {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.crest-numeral {
+  font-family: 'Cinzel', serif;
+  font-size: 12.5px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.crest-tier-0 {
+  background: radial-gradient(circle at 35% 35%, #581c87 0%, #1f0733 80%);
+  border: 1.5px solid #a855f7;
+  color: #e9d5ff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(216, 180, 254, 0.7);
+  text-shadow: 0 0 4px rgba(168, 85, 247, 0.7);
+}
+
+.crest-tier-1 {
+  background: radial-gradient(circle at 35% 35%, #64748b 0%, #1e293b 80%);
+  border: 1.5px solid #cbd5e1;
+  color: #f8fafc;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.85);
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+}
+
+.crest-tier-2 {
+  background: radial-gradient(circle at 35% 35%, #d97706 0%, #451a03 80%);
+  border: 1.5px solid #f59e0b;
+  color: #fef08a;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(254, 240, 138, 0.85);
+  text-shadow: 0 0 4px rgba(245, 158, 11, 0.8);
+}
+
+.crest-tier-3 {
+  background: radial-gradient(circle at 35% 35%, #9333ea 0%, #2e1065 80%);
+  border: 1.5px solid #e879f9;
+  color: #ffffff;
+  box-shadow: 0 1px 6px rgba(168, 85, 247, 0.75), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+  text-shadow: 0 0 6px rgba(232, 121, 249, 0.9);
+}
+
+/* Badges Cluster */
+.tcg-badges-cluster {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Center Fantasy Inked Art Window */
+.tcg-art-window {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 2px 0;
+  z-index: 5;
+}
+
+.tcg-art-frame-inner {
+  width: 100%;
+  height: 100%;
+  max-height: 185px;
+  border: 1.5px solid rgba(180, 130, 80, 0.5);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Tier-specific seamless dark radial gradient without harsh black boxes */
+/* Tier 0: Deep abyssal purple-black (#150a1e) with crimson glow */
+.tcg-art-frame-inner.art-tier-0,
+.tcg-frame-tier-0 .tcg-art-frame-inner {
+  background: radial-gradient(circle at 50% 45%, #2c103a 0%, #150a1e 58%, #0b0410 100%);
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 
+    inset 0 0 28px rgba(239, 68, 68, 0.25),
+    inset 0 0 45px rgba(0, 0, 0, 0.8),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Tier 1: Nocturnal slate-silver (#0f172a) with luminous cyan-silver glow */
+.tcg-art-frame-inner.art-tier-1,
+.tcg-frame-tier-1 .tcg-art-frame-inner {
+  background: radial-gradient(circle at 50% 45%, #1e293b 0%, #0f172a 58%, #080d16 100%);
+  border-color: rgba(148, 163, 184, 0.55);
+  box-shadow: 
+    inset 0 0 28px rgba(56, 189, 248, 0.25),
+    inset 0 0 40px rgba(0, 0, 0, 0.8),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Tier 2: Royal obsidian-gold (#1a1205) with radiant solar amber glow */
+.tcg-art-frame-inner.art-tier-2,
+.tcg-frame-tier-2 .tcg-art-frame-inner {
+  background: radial-gradient(circle at 50% 45%, #3d2408 0%, #1a1205 58%, #0c0802 100%);
+  border-color: rgba(245, 158, 11, 0.6);
+  box-shadow: 
+    inset 0 0 30px rgba(245, 158, 11, 0.32),
+    inset 0 0 45px rgba(0, 0, 0, 0.8),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Tier 3: Cosmic astral violet (#180829) with prismatic magenta glow */
+.tcg-art-frame-inner.art-tier-3,
+.tcg-frame-tier-3 .tcg-art-frame-inner {
+  background: radial-gradient(circle at 50% 45%, #3d1259 0%, #180829 58%, #0c0316 100%);
+  border-color: rgba(216, 180, 254, 0.7);
+  box-shadow: 
+    inset 0 0 32px rgba(232, 121, 249, 0.38),
+    inset 0 0 50px rgba(0, 0, 0, 0.85),
+    0 2px 8px rgba(168, 85, 247, 0.4);
+}
+
+.tcg-art-frame-inner .card-svg,
+.tcg-art-frame-inner .procedural-sigil {
+  width: 100%;
+  height: 100%;
+  max-width: 165px;
+  max-height: 165px;
+  display: block;
+  filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 14px currentColor);
+}
+
+/* Bottom Medieval Gothic Ribbon Banner */
+.tcg-gothic-banner {
+  position: relative;
+  z-index: 6;
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.tcg-banner-main {
+  background: linear-gradient(180deg, #241b2a 0%, #120b17 100%);
+  border: 1.5px solid #b45309;
+  border-radius: 6px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  box-shadow: 
+    0 4px 10px rgba(0, 0, 0, 0.65),
+    inset 0 1px 2px rgba(245, 158, 11, 0.3);
+}
+
+.tcg-card-title {
+  font-family: 'MedievalSharp', cursive, serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #fef3c7;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+/* Large Prominent Multiplier Pill */
+.tcg-multiplier-shield {
+  min-width: 60px;
+  height: 34px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  font-family: 'Rubik', monospace;
+  font-size: 1.22rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  transition: transform 0.08s ease, filter 0.08s ease, box-shadow 0.08s ease;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.tcg-multiplier-shield .shield-val {
+  line-height: 1;
+  display: inline-block;
+}
+
+.shield-tier-0 {
+  background: linear-gradient(135deg, #991b1b 0%, #450a0a 50%, #7f1d1d 100%);
+  color: #fee2e2;
+  border: 2px solid #ef4444;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.55), inset 0 1px 3px rgba(254, 202, 202, 0.5);
+  text-shadow: 0 0 8px rgba(239, 68, 68, 0.8), 0 2px 4px rgba(0, 0, 0, 0.95);
+}
+
+.shield-tier-1 {
+  background: linear-gradient(135deg, #475569 0%, #0f172a 50%, #334155 100%);
+  color: #e0f2fe;
+  border: 2px solid #38bdf8;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.45), inset 0 1px 3px rgba(255, 255, 255, 0.6);
+  text-shadow: 0 0 8px rgba(56, 189, 248, 0.8), 0 2px 4px rgba(0, 0, 0, 0.95);
+}
+
+.shield-tier-2 {
+  background: linear-gradient(135deg, #d97706 0%, #451a03 50%, #b45309 100%);
+  color: #fef08a;
+  border: 2px solid #fbbf24;
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.65), inset 0 1px 3px rgba(254, 240, 138, 0.8);
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.9), 0 2px 4px rgba(0, 0, 0, 0.95);
+}
+
+.shield-tier-3 {
+  background: linear-gradient(135deg, #9333ea 0%, #2e1065 50%, #7e22ce 100%);
+  color: #ffffff;
+  border: 2px solid #e879f9;
+  box-shadow: 0 0 22px rgba(192, 132, 252, 0.8), inset 0 1px 4px rgba(255, 255, 255, 0.8);
+  text-shadow: 0 0 12px rgba(232, 121, 249, 1), 0 2px 4px rgba(0, 0, 0, 0.95);
+}
+
+.tcg-multiplier-shield.tally-counting {
+  transform: scale(1.22);
+  filter: brightness(1.35);
+}
+
+.tcg-multiplier-shield.tally-final {
+  animation: tallyImpact 0.28s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
 }
 
 /* ==========================================================================
@@ -3293,14 +3663,14 @@ h1, h2, h3, h4, .font-heading {
   }
 
   .card-slot-3d {
-    width: clamp(92px, 30vw, 114px);
-    height: clamp(146px, 47vw, 180px);
+    width: clamp(100px, 30vw, 124px);
+    height: clamp(155px, 47vw, 192px);
     flex-shrink: 1;
   }
 
   /* Card Back internal scaling */
   .card-back {
-    padding: 5px;
+    padding: 4px;
   }
 
   .card-back-border {
@@ -3317,8 +3687,61 @@ h1, h2, h3, h4, .font-heading {
   .corner-br { bottom: 2px; right: 3px; }
 
   .card-back-mandala {
-    width: 66px;
-    height: 66px;
+    width: 74px;
+    height: 74px;
+  }
+
+  /* 90s Vintage TCG Mobile Overrides */
+  .tcg-card-frame,
+  .card-back {
+    clip-path: polygon(7px 0, calc(100% - 7px) 0, 100% 7px, 100% calc(100% - 7px), calc(100% - 7px) 100%, 7px 100%, 0 calc(100% - 7px), 0 7px);
+    padding: 3.5px;
+  }
+
+  .tcg-frame-pinstripe {
+    clip-path: polygon(5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px), 0 5px);
+    padding: 1.5px;
+  }
+
+  .tcg-parchment-plate {
+    clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px);
+    padding: 4px 4px 3px 4px;
+    gap: 3px;
+  }
+
+  .tcg-crest-emblem {
+    width: 20px;
+    height: 20px;
+  }
+
+  .crest-numeral {
+    font-size: 9px;
+  }
+
+  .tcg-art-frame-inner {
+    max-height: 98px;
+    padding: 3px;
+  }
+
+  .tcg-banner-main {
+    padding: 3px 6px;
+  }
+
+  .tcg-card-title {
+    font-size: 9.5px;
+  }
+
+  .tcg-multiplier-shield {
+    min-width: 38px;
+    height: 23px;
+    font-size: 0.88rem;
+    font-weight: 900;
+    padding: 0 4px;
+  }
+
+  .card-back-border {
+    clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px);
+    padding: 6px 4px;
   }
 
   .card-back-title {
@@ -3329,16 +3752,6 @@ h1, h2, h3, h4, .font-heading {
 
   .card-back-sub {
     font-size: 6px;
-  }
-
-  /* Card Front internal scaling */
-  .card-front {
-    padding: 6px;
-  }
-
-  .card-header-bar {
-    padding-bottom: 3px;
-    gap: 2px;
   }
 
   .card-roman {
@@ -3417,8 +3830,39 @@ h1, h2, h3, h4, .font-heading {
   }
 
   .card-slot-3d {
-    width: clamp(82px, 30.5vw, 98px);
-    height: clamp(132px, 48vw, 156px);
+    width: clamp(86px, 30.5vw, 106px);
+    height: clamp(138px, 48vw, 168px);
+  }
+
+  .tcg-card-frame,
+  .card-back {
+    clip-path: polygon(5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px), 0 5px);
+    padding: 2.5px;
+  }
+
+  .tcg-crest-emblem {
+    width: 17px;
+    height: 17px;
+  }
+
+  .crest-numeral {
+    font-size: 7.5px;
+  }
+
+  .tcg-art-frame-inner {
+    max-height: 76px;
+  }
+
+  .tcg-card-title {
+    font-size: 8px;
+  }
+
+  .tcg-multiplier-shield {
+    min-width: 32px;
+    height: 20px;
+    font-size: 0.75rem;
+    font-weight: 900;
+    padding: 0 3px;
   }
 
   .card-back-mandala {
