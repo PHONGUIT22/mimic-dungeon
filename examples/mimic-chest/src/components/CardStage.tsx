@@ -432,7 +432,7 @@ export function CardStage({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mouse Move Parallax Tilt Handler
+  // Mouse Move Parallax Tilt Handler (Desktop)
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>, cardIndex: number) => {
     if (spreadState !== 'awaiting_pick') return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -444,6 +444,23 @@ export function CardStage({
   };
 
   const handleMouseLeave = () => {
+    setTilt({ index: null, rx: 0, ry: 0 });
+  };
+
+  // Touch Move Parallax Tilt Handler (Mobile)
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>, cardIndex: number) => {
+    if (spreadState !== 'awaiting_pick') return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = touch.clientX - rect.left - rect.width / 2;
+    const y = touch.clientY - rect.top - rect.height / 2;
+    const rx = -(y / (rect.height / 2)) * 14;
+    const ry = (x / (rect.width / 2)) * 14;
+    setTilt({ index: cardIndex, rx, ry });
+  };
+
+  const handleTouchEnd = () => {
     setTilt({ index: null, rx: 0, ry: 0 });
   };
 
@@ -522,6 +539,9 @@ export function CardStage({
                 } ${isFlipped && cardData?.edition === 'holo' ? 'slot-holo' : ''}`}
                 onMouseMove={e => handleMouseMove(e, slotIndex)}
                 onMouseLeave={handleMouseLeave}
+                onTouchMove={e => handleTouchMove(e, slotIndex)}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchEnd}
                 onClick={() => handleCardClick(slotIndex)}
               >
                 <div

@@ -24,6 +24,7 @@ import { VerifyModal } from './components/VerifyModal';
 import { CollectionModal } from './components/CollectionModal';
 import { WinOverlay } from './components/WinOverlay';
 import { computeUnlockedPillarsCount } from './lib/proceduralNames';
+import { sound } from './lib/audio';
 
 export type { RoundStep };
 
@@ -223,6 +224,15 @@ export function App() {
       }
       return next;
     });
+  }, []);
+
+  // BGM Active state for top header audio control
+  const [bgmActive, setBgmActive] = useState(() => sound.isBgmEnabled());
+
+  const handleToggleBgm = useCallback(() => {
+    const next = sound.toggleBgm();
+    setBgmActive(next);
+    if (sound.sfxEnabled) sound.playClick();
   }, []);
 
   const decimals = snapshot?.token.decimals ?? 18;
@@ -628,6 +638,29 @@ export function App() {
         </div>
 
         <div className="header-right">
+          {/* Header Fast Mode & Mystic BGM Audio Controls */}
+          <div className="header-actions">
+            <button
+              type="button"
+              onClick={toggleFastMode}
+              className={`header-btn-util header-btn-fast ${fastMode ? 'active' : ''}`}
+              title="Toggle Fast Mode (skips card deal and reveal delay animations)"
+            >
+              <span className="btn-icon">⚡</span>
+              <span className="btn-label">Fast: {fastMode ? 'ON' : 'OFF'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleToggleBgm}
+              className={`header-btn-util header-btn-bgm ${bgmActive ? 'active' : 'inactive'}`}
+              title="Procedural Web Audio Synthesizer (Dark Occult Drone & Mystic Arpeggios)"
+            >
+              <span className={`bgm-indicator-dot ${bgmActive ? 'pulsing' : ''}`} />
+              <span className="btn-label">{bgmActive ? '🎵 Mystic BGM: ON' : '🔇 Mystic BGM: OFF'}</span>
+            </button>
+          </div>
+
           {isDemoMode && <span className="badge-demo">DEMO MODE</span>}
 
           <div className="header-balance-box">
@@ -653,6 +686,8 @@ export function App() {
             disabled={isBusy}
             fastMode={fastMode}
             onToggleFastMode={toggleFastMode}
+            bgmActive={bgmActive}
+            onToggleBgm={handleToggleBgm}
             onOpenPaytable={() => setPaytableOpen(true)}
             onOpenCollection={() => setCollectionOpen(true)}
             discoveredCount={unlockedPillarsCount}

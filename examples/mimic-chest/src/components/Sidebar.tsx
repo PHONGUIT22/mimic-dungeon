@@ -22,6 +22,8 @@ export function Sidebar({
   discoveredCount = 0,
   unlockedPillarsCount,
   totalUniqueSigils,
+  bgmActive,
+  onToggleBgm,
 }: {
   balance: bigint | undefined;
   decimals: number;
@@ -41,9 +43,13 @@ export function Sidebar({
   onResetDemoBalance: () => void;
   maxAllowedWager?: bigint;
   roundStep?: RoundStep;
+  bgmActive?: boolean;
+  onToggleBgm?: () => void;
 }) {
   const [soundEnabled, setSoundEnabled] = useState(sound.sfxEnabled);
-  const [bgmEnabled, setBgmEnabled] = useState(sound.isBgmEnabled());
+  const [localBgmEnabled, setLocalBgmEnabled] = useState(sound.isBgmEnabled());
+
+  const isBgmOn = bgmActive !== undefined ? bgmActive : localBgmEnabled;
 
   const toggleSound = () => {
     const next = sound.toggleSfx();
@@ -51,9 +57,13 @@ export function Sidebar({
   };
 
   const toggleBgm = () => {
-    const next = sound.toggleBgm();
-    setBgmEnabled(next);
-    if (sound.sfxEnabled) sound.playClick();
+    if (onToggleBgm) {
+      onToggleBgm();
+    } else {
+      const next = sound.toggleBgm();
+      setLocalBgmEnabled(next);
+      if (sound.sfxEnabled) sound.playClick();
+    }
   };
 
   const parsedWager = useMemo(() => {
@@ -277,10 +287,10 @@ export function Sidebar({
         <button
           type="button"
           onClick={toggleBgm}
-          className={`btn-util ${bgmEnabled ? 'active' : ''}`}
+          className={`btn-util ${isBgmOn ? 'active' : ''}`}
           title="Toggle ambient dungeon music (BGM)"
         >
-          <span>{bgmEnabled ? '🎵' : '🔇'}</span> Music
+          <span>{isBgmOn ? '🎵' : '🔇'}</span> Music
         </button>
 
         <button
