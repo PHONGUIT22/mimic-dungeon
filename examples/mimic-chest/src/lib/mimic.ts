@@ -739,3 +739,54 @@ export const PHASE_CANCELLED = 5;
 export function isTerminalPhase(phase: number | undefined): boolean {
   return phase === PHASE_SETTLED || phase === PHASE_FORFEITED || phase === PHASE_CANCELLED;
 }
+
+/**
+ * Atmospheric Occult Dark Oracle Micro-copy (Prophecies)
+ * Distinct quotes for each Tarot fate outcome tier.
+ */
+export const DARK_ORACLE_QUOTES: Record<number, string[]> = {
+  0: [
+    "The void devours the souls of the greedy.",
+    "Fate turns its back. Ashes to ashes, dust to dust.",
+    "Even the stars cast shadows in the abyss.",
+    "Not even a consolation rune. The darkness smiled.",
+    "Greed demanded more. The silence answered.",
+    "The abyss gazes back, and it found thee wanting.",
+  ],
+  1: [
+    "A faint glimmer guides through the darkest night.",
+    "Taking profit early is also an ancient wisdom.",
+    "Technically a win. The runes acknowledge you.",
+    "A humble bounty. Greed slumbers for now.",
+    "The silver thread remains unbroken.",
+    "Modest fortune favors the patient traveler.",
+  ],
+  2: [
+    "The solar crest blazes; divine fortune smiles upon the bold!",
+    "Gold flows where the daring tread.",
+    "A glorious omen etched upon the celestial spheres.",
+    "The Sun crest laughs; abundance fills your coffers!",
+    "Radiant alchemy! The arcane turns into gold!",
+  ],
+  3: [
+    "THE COSMOS SHIVERS! THOU ART THE MASTER OF DESTINY!",
+    "A celestial convergence! The heavens bow before your will!",
+    "Prophecy fulfilled! The Wheel of Destiny crowns a legend!",
+    "Beyond the stars, your triumph is carved in timeless gold!",
+    "THE WEAVE RENDERS IN AWE! JACKPOT OF THE GODS!",
+  ],
+};
+
+export function getDarkOracleQuote(tierIndex: number, seed?: number | string): string {
+  const quotes = DARK_ORACLE_QUOTES[tierIndex] ?? DARK_ORACLE_QUOTES[0];
+  let numSeed = 0;
+  if (typeof seed === 'number') {
+    numSeed = Math.abs(seed);
+  } else if (typeof seed === 'string') {
+    for (let i = 0; i < seed.length; i++) {
+      numSeed = (numSeed * 31 + seed.charCodeAt(i)) >>> 0;
+    }
+  }
+  return quotes[numSeed % quotes.length];
+}
+

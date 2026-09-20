@@ -6,9 +6,32 @@ import {
   type RoundStep,
   getCardForOutcome,
   generateNearMissCards,
+  getDarkOracleQuote,
 } from '../lib/mimic';
 import { sound } from '../lib/audio';
 import { ProceduralSigil } from './ProceduralSigil';
+
+// 18 Deterministic Ambient Floating Dust Motes / Spirit Embers
+const DUST_MOTES = [
+  { left: 8, top: 18, size: 3, delay: 0, duration: 6.2, opacity: 0.65, colorType: 'gold' },
+  { left: 16, top: 62, size: 2.5, delay: -1.8, duration: 7.5, opacity: 0.5, colorType: 'cyan' },
+  { left: 24, top: 34, size: 3.5, delay: -3.2, duration: 5.8, opacity: 0.7, colorType: 'purple' },
+  { left: 32, top: 78, size: 2, delay: -4.5, duration: 8.0, opacity: 0.45, colorType: 'gold' },
+  { left: 42, top: 15, size: 3, delay: -0.9, duration: 6.8, opacity: 0.6, colorType: 'white' },
+  { left: 48, top: 55, size: 4, delay: -2.4, duration: 5.5, opacity: 0.75, colorType: 'gold' },
+  { left: 56, top: 82, size: 2.5, delay: -5.1, duration: 7.2, opacity: 0.55, colorType: 'cyan' },
+  { left: 64, top: 22, size: 3, delay: -1.3, duration: 6.4, opacity: 0.65, colorType: 'purple' },
+  { left: 72, top: 68, size: 2, delay: -3.7, duration: 8.5, opacity: 0.4, colorType: 'gold' },
+  { left: 80, top: 40, size: 3.5, delay: -2.1, duration: 5.9, opacity: 0.7, colorType: 'white' },
+  { left: 88, top: 85, size: 2.5, delay: -4.8, duration: 7.0, opacity: 0.5, colorType: 'cyan' },
+  { left: 92, top: 28, size: 3, delay: -0.5, duration: 6.6, opacity: 0.6, colorType: 'gold' },
+  { left: 12, top: 44, size: 2, delay: -2.8, duration: 7.8, opacity: 0.45, colorType: 'purple' },
+  { left: 28, top: 88, size: 3, delay: -5.5, duration: 6.1, opacity: 0.65, colorType: 'gold' },
+  { left: 68, top: 12, size: 2.5, delay: -1.6, duration: 8.2, opacity: 0.5, colorType: 'cyan' },
+  { left: 84, top: 58, size: 3.5, delay: -4.1, duration: 5.6, opacity: 0.75, colorType: 'gold' },
+  { left: 38, top: 38, size: 2, delay: -3.0, duration: 7.4, opacity: 0.5, colorType: 'white' },
+  { left: 76, top: 74, size: 2.5, delay: -0.8, duration: 6.9, opacity: 0.6, colorType: 'purple' },
+];
 
 export type CardAnimationState = 'idle' | 'opening' | 'revealed';
 
@@ -16,6 +39,7 @@ export type SpreadState =
   | 'idle'
   | 'dealing'
   | 'awaiting_pick'
+  | 'squeezing'
   | 'revealing'
   | 'near_miss'
   | 'done';
@@ -48,6 +72,7 @@ export function CardStage({
   // 3-Card spread internal state
   const [spreadState, setSpreadState] = useState<SpreadState>('idle');
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const [squeezingTier, setSqueezingTier] = useState<number | null>(null);
   const [cards, setCards] = useState<[DisplayCard | null, DisplayCard | null, DisplayCard | null]>([
     null,
     null,
@@ -67,6 +92,15 @@ export function CardStage({
     rx: 0,
     ry: 0,
   });
+
+  // Audio chime trigger on streak progression (Rune Resonance)
+  const prevStreakRef = useRef(streak);
+  useEffect(() => {
+    if (streak > prevStreakRef.current && streak > 0) {
+      sound.playRuneResonance(streak);
+    }
+    prevStreakRef.current = streak;
+  }, [streak]);
 
   // Particle System
   const particlesRef = useRef<
@@ -198,13 +232,15 @@ export function CardStage({
     const activeIdx = chosenIndex !== null && chosenIndex !== undefined ? chosenIndex : selectedIdx;
     if (activeIdx === null || !outcome) return;
 
-    const isRevealTriggered =
-      step === 'revealing' ||
-      state === 'revealed' ||
-      ((spreadState === 'awaiting_pick' || spreadState === 'dealing') && activeIdx !== null && outcome);
-
-    if (!isRevealTriggered) return;
-    if (spreadState === 'revealing' || spreadState === 'near_miss' || spreadState === 'done') return;
+    // Do not re-trigger if already in squeezing, revealing, or completed state
+    if (
+      spreadState === 'squeezing' ||
+      spreadState === 'revealing' ||
+      spreadState === 'near_miss' ||
+      spreadState === 'done'
+    ) {
+      return;
+    }
 
     // Populate actual card at selected slot and near-miss cards at unpicked slots
     const actualCard =
@@ -224,145 +260,155 @@ export function CardStage({
     setCards(newCards);
     setSelectedIdx(activeIdx);
 
-    // STEP A: Flip selected card forward immediately
-    setSpreadState('revealing');
-    setFlipped(prev => {
-      const next = [...prev] as [boolean, boolean, boolean];
-      next[activeIdx] = true;
-      return next;
-    });
+    // STEP A: Slow Peek / Squeeze Suspense Phase (~440ms)
+    // The selected card lifts, edges seep tier-specific aura glow, with an escalating rising-pitch tension synth!
+    setSpreadState('squeezing');
+    setSqueezingTier(outcome.tierIndex);
+    sound.playCardSqueeze(outcome.tierIndex);
 
-    // Base Audio for selected outcome
-    if (outcome.tierIndex === 0) {
-      sound.playMimic();
-    } else if (outcome.tierIndex === 1) {
-      sound.playSilver();
-    } else if (outcome.tierIndex === 2) {
-      sound.playGold();
-    } else {
-      sound.playLegendary();
-    }
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    const squeezeDuration = fastMode ? 80 : 440;
 
-    // Spawn particle burst at selected card
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const xPercent = activeIdx === 0 ? 0.25 : activeIdx === 1 ? 0.5 : 0.75;
-      spawnParticles(outcome.tierIndex, canvas.width * xPercent, canvas.height * 0.44, actualCard?.edition);
-    }
+    const squeezeTimer = setTimeout(() => {
+      setSqueezingTier(null);
+      setSpreadState('revealing');
+      setFlipped(prev => {
+        const next = [...prev] as [boolean, boolean, boolean];
+        next[activeIdx] = true;
+        return next;
+      });
 
-    const isEditionCard = actualCard?.edition && actualCard.edition !== 'standard';
-
-    if (isEditionCard) {
-      // Trigger edition visual & audio effects
-      const editionTimer = setTimeout(() => {
-        setEditionTriggered(true);
-        onScreenShake?.();
-
-        if (actualCard.edition === 'foil') {
-          sound.playFoilTing();
-        } else if (actualCard.edition === 'holo') {
-          sound.playHoloTing();
-        } else if (actualCard.edition === 'polychrome') {
-          sound.playPolychromeChime();
-        }
-      }, fastMode ? 100 : 220);
-
-      // Scoring tally for winning outcomes
-      if (outcome.won && outcome.multiplier > 0) {
-        setTallyMultiplier(1.0);
-        setIsTallying(true);
-        setIsTallyDone(false);
-
-        sound.playPitchShiftTally(
-          outcome.multiplier,
-          (_stepIndex, currentMult, isFinal) => {
-            setTallyMultiplier(currentMult);
-            if (isFinal) {
-              setIsTallying(false);
-              setIsTallyDone(true);
-              onScreenShake?.();
-            }
-          },
-          fastMode,
-          1.0,
-        );
+      // Base Audio for selected outcome
+      if (outcome.tierIndex === 0) {
+        sound.playMimic();
+      } else if (outcome.tierIndex === 1) {
+        sound.playSilver();
+      } else if (outcome.tierIndex === 2) {
+        sound.playGold();
       } else {
-        setTallyMultiplier(0);
-        setIsTallying(false);
-        setIsTallyDone(true);
+        sound.playLegendary();
       }
 
-      const nearMissDelay = fastMode ? 200 : (outcome.tierIndex === 0 ? 350 : 500);
-      const nearMissTimer = setTimeout(() => {
-        setSpreadState('near_miss');
-        setFlipped([true, true, true]);
-
-        if (outcome.tierIndex === 0) {
-          const hasJackpotMiss = dummyCards.some(c => c.tierIndex === 3);
-          if (hasJackpotMiss) {
-            sound.playNearMissSigh();
-          }
-        }
-
-        const doneTimer = setTimeout(() => {
-          setSpreadState('done');
-        }, fastMode ? 150 : 500);
-
-        return () => clearTimeout(doneTimer);
-      }, nearMissDelay);
-
-      return () => {
-        clearTimeout(editionTimer);
-        clearTimeout(nearMissTimer);
-      };
-    } else {
-      // Standard Edition Card
-      if (outcome.won && outcome.multiplier > 0) {
-        setTallyMultiplier(1.0);
-        setIsTallying(true);
-        setIsTallyDone(false);
-
-        sound.playPitchShiftTally(
-          outcome.multiplier,
-          (_stepIndex, currentMult, isFinal) => {
-            setTallyMultiplier(currentMult);
-            if (isFinal) {
-              setIsTallying(false);
-              setIsTallyDone(true);
-              onScreenShake?.();
-            }
-          },
-          fastMode,
-          1.0,
-        );
-      } else {
-        setTallyMultiplier(0);
-        setIsTallying(false);
-        setIsTallyDone(true);
+      // Spawn particle burst at selected card
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const xPercent = activeIdx === 0 ? 0.25 : activeIdx === 1 ? 0.5 : 0.75;
+        spawnParticles(outcome.tierIndex, canvas.width * xPercent, canvas.height * 0.44, actualCard?.edition);
       }
 
-      // Flip remaining 2 near-miss cards (350ms for The Void x0.0 loss, or 450ms after tally)
-      const delayTime = fastMode ? 150 : outcome.tierIndex === 0 ? 350 : 450;
-      const nearMissTimer = setTimeout(() => {
-        setSpreadState('near_miss');
-        setFlipped([true, true, true]);
+      const isEditionCard = actualCard?.edition && actualCard.edition !== 'standard';
 
-        if (outcome.tierIndex === 0) {
-          const hasJackpotMiss = dummyCards.some(c => c.tierIndex === 3);
-          if (hasJackpotMiss) {
-            sound.playNearMissSigh();
+      if (isEditionCard) {
+        // Trigger edition visual & audio effects
+        const editionTimer = setTimeout(() => {
+          setEditionTriggered(true);
+          onScreenShake?.();
+
+          if (actualCard.edition === 'foil') {
+            sound.playFoilTing();
+          } else if (actualCard.edition === 'holo') {
+            sound.playHoloTing();
+          } else if (actualCard.edition === 'polychrome') {
+            sound.playPolychromeChime();
           }
+        }, fastMode ? 100 : 220);
+        timers.push(editionTimer);
+
+        // Scoring tally for winning outcomes
+        if (outcome.won && outcome.multiplier > 0) {
+          setTallyMultiplier(1.0);
+          setIsTallying(true);
+          setIsTallyDone(false);
+
+          sound.playPitchShiftTally(
+            outcome.multiplier,
+            (_stepIndex, currentMult, isFinal) => {
+              setTallyMultiplier(currentMult);
+              if (isFinal) {
+                setIsTallying(false);
+                setIsTallyDone(true);
+                onScreenShake?.();
+              }
+            },
+            fastMode,
+            1.0,
+          );
+        } else {
+          setTallyMultiplier(0);
+          setIsTallying(false);
+          setIsTallyDone(true);
         }
 
-        const doneTimer = setTimeout(() => {
-          setSpreadState('done');
-        }, fastMode ? 150 : 500);
+        const nearMissDelay = fastMode ? 200 : (outcome.tierIndex === 0 ? 350 : 500);
+        const nearMissTimer = setTimeout(() => {
+          setSpreadState('near_miss');
+          setFlipped([true, true, true]);
 
-        return () => clearTimeout(doneTimer);
-      }, delayTime);
+          if (outcome.tierIndex === 0) {
+            const hasJackpotMiss = dummyCards.some(c => c.tierIndex === 3);
+            if (hasJackpotMiss) {
+              sound.playNearMissSigh();
+            }
+          }
 
-      return () => clearTimeout(nearMissTimer);
-    }
+          const doneTimer = setTimeout(() => {
+            setSpreadState('done');
+          }, fastMode ? 150 : 500);
+          timers.push(doneTimer);
+        }, nearMissDelay);
+        timers.push(nearMissTimer);
+      } else {
+        // Standard Edition Card
+        if (outcome.won && outcome.multiplier > 0) {
+          setTallyMultiplier(1.0);
+          setIsTallying(true);
+          setIsTallyDone(false);
+
+          sound.playPitchShiftTally(
+            outcome.multiplier,
+            (_stepIndex, currentMult, isFinal) => {
+              setTallyMultiplier(currentMult);
+              if (isFinal) {
+                setIsTallying(false);
+                setIsTallyDone(true);
+                onScreenShake?.();
+              }
+            },
+            fastMode,
+            1.0,
+          );
+        } else {
+          setTallyMultiplier(0);
+          setIsTallying(false);
+          setIsTallyDone(true);
+        }
+
+        // Flip remaining 2 near-miss cards (350ms for The Void x0.0 loss, or 450ms after tally)
+        const delayTime = fastMode ? 150 : outcome.tierIndex === 0 ? 350 : 450;
+        const nearMissTimer = setTimeout(() => {
+          setSpreadState('near_miss');
+          setFlipped([true, true, true]);
+
+          if (outcome.tierIndex === 0) {
+            const hasJackpotMiss = dummyCards.some(c => c.tierIndex === 3);
+            if (hasJackpotMiss) {
+              sound.playNearMissSigh();
+            }
+          }
+
+          const doneTimer = setTimeout(() => {
+            setSpreadState('done');
+          }, fastMode ? 150 : 500);
+          timers.push(doneTimer);
+        }, delayTime);
+        timers.push(nearMissTimer);
+      }
+    }, squeezeDuration);
+    timers.push(squeezeTimer);
+
+    return () => {
+      timers.forEach(t => clearTimeout(t));
+    };
   }, [step, state, chosenIndex, selectedIdx, outcome, wager, spreadState, fastMode, spawnParticles, onScreenShake]);
 
   // Particle Canvas Render Loop
@@ -478,7 +524,66 @@ export function CardStage({
           : 'outcome-badge-legendary';
 
   return (
-    <div className={`card-stage-container ${streak >= 3 ? 'streak-plasma-active' : ''}`}>
+    <div className={`card-stage-container occult-tabletop ${streak >= 3 ? 'streak-plasma-active' : ''}`}>
+      {/* VELVET TABLETOP WITH GOLD-EMBROIDERED RUNIC BORDER */}
+      <div className="tabletop-velvet-cloth" aria-hidden="true">
+        <div className="tabletop-runic-border">
+          <span className="corner-knot corner-knot-tl">✦ ᚱ ✦</span>
+          <span className="corner-knot corner-knot-tr">✦ ᛟ ✦</span>
+          <span className="corner-knot corner-knot-bl">✦ ᛞ ✦</span>
+          <span className="corner-knot corner-knot-br">✦ ᛊ ✦</span>
+        </div>
+      </div>
+
+      {/* 18 AMBIENT FLOATING DUST MOTES / SPIRIT EMBERS */}
+      <div className="tabletop-dust-container" aria-hidden="true">
+        {DUST_MOTES.map((mote, i) => (
+          <div
+            key={i}
+            className={`dust-mote dust-mote-${mote.colorType}`}
+            style={{
+              left: `${mote.left}%`,
+              top: `${mote.top}%`,
+              width: `${mote.size}px`,
+              height: `${mote.size}px`,
+              animationDelay: `${mote.delay}s`,
+              animationDuration: `${mote.duration}s`,
+              opacity: mote.opacity,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* OCCULT CANDLE - LEFT CORNER */}
+      <div className="occult-candle candle-left" aria-hidden="true">
+        <div className="candle-halo" />
+        <div className="candle-smoke" />
+        <div className="candle-flame">
+          <div className="flame-inner" />
+        </div>
+        <div className="candle-wick" />
+        <div className="candle-wax">
+          <div className="wax-drip drip-1" />
+          <div className="wax-drip drip-2" />
+        </div>
+        <div className="candle-stand" />
+      </div>
+
+      {/* OCCULT CANDLE - RIGHT CORNER */}
+      <div className="occult-candle candle-right" aria-hidden="true">
+        <div className="candle-halo" />
+        <div className="candle-smoke" />
+        <div className="candle-flame">
+          <div className="flame-inner" />
+        </div>
+        <div className="candle-wick" />
+        <div className="candle-wax">
+          <div className="wax-drip drip-1" />
+          <div className="wax-drip drip-2" />
+        </div>
+        <div className="candle-stand" />
+      </div>
+
       {/* Background Particle Canvas */}
       <canvas ref={canvasRef} className="card-stage-canvas" />
 
@@ -516,6 +621,8 @@ export function CardStage({
                 : null);
             const isAwaiting = spreadState === 'awaiting_pick';
             const isDealing = spreadState === 'dealing';
+            const isSqueezing = spreadState === 'squeezing' && isPicked;
+            const isOtherSqueezing = spreadState === 'squeezing' && !isPicked;
 
             // Calculate tilt transform without breaking preserve-3d
             const isTilted = tilt.index === slotIndex;
@@ -525,6 +632,10 @@ export function CardStage({
               transformStyle = isPicked
                 ? 'rotateY(180deg) scale(1.04)'
                 : 'rotateY(180deg) scale(0.96)';
+            } else if (isSqueezing) {
+              transformStyle = 'translateY(-24px) scale(1.10)';
+            } else if (isOtherSqueezing) {
+              transformStyle = 'translateY(6px) scale(0.93)';
             } else if (isTilted && isAwaiting) {
               transformStyle = `rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg) translateY(-8px) scale(1.04)`;
             } else if (isAwaiting) {
@@ -535,6 +646,8 @@ export function CardStage({
               <div
                 key={slotIndex}
                 className={`card-slot-3d ${isAwaiting ? 'slot-awaiting' : ''} ${isPicked ? 'slot-picked' : ''} ${
+                  isSqueezing ? `slot-squeezing squeeze-tier-${squeezingTier ?? 0}` : ''
+                } ${isOtherSqueezing ? 'slot-squeeze-dimmed' : ''} ${
                   isFlipped && cardData?.edition === 'polychrome' ? 'slot-polychrome' : ''
                 } ${isFlipped && cardData?.edition === 'holo' ? 'slot-holo' : ''}`}
                 onMouseMove={e => handleMouseMove(e, slotIndex)}
@@ -548,6 +661,8 @@ export function CardStage({
                   className={`card-3d ${isFlipped ? 'flipped' : ''} ${
                     fastMode ? 'fast-flip' : ''
                   } ${isDealing ? 'card-dealing' : ''} ${isPicked ? 'card-picked' : ''} ${
+                    isSqueezing ? `card-squeezing squeeze-card-tier-${squeezingTier ?? 0}` : ''
+                  } ${
                     isFlipped && !isPicked ? 'card-unpicked' : ''
                   }`}
                   style={{
@@ -556,7 +671,16 @@ export function CardStage({
                   }}
                 >
                   {/* CARD BACK (MẶT LƯNG: VÒNG TRÒN MA THUẬT VÀNG CỔ) */}
-                  <div className="card-face card-back">
+                  <div className={`card-face card-back ${isSqueezing ? `back-squeezing back-squeeze-tier-${squeezingTier ?? 0}` : ''}`}>
+                    {/* Squeeze Suspense Aura Effect - Edge seeping glow before card flip */}
+                    {isSqueezing && squeezingTier !== null && (
+                      <div className={`card-squeeze-aura-effect aura-tier-${squeezingTier}`}>
+                        <div className="aura-smoke" />
+                        <div className="aura-rays" />
+                        <div className="aura-border-flare" />
+                        <div className="aura-inner-glow" />
+                      </div>
+                    )}
                     <div className="card-back-border">
                       <div className="card-corner corner-tl">✦</div>
                       <div className="card-corner corner-tr">✦</div>
@@ -676,6 +800,11 @@ export function CardStage({
                     <div className="card-footer-info">
                       <div className="card-main-title">{cardData?.name ?? 'ARCANA'}</div>
                       <div className="card-sub-desc">{cardData?.subtitle ?? 'Turn of fate'}</div>
+                      {isPicked && isFlipped && cardData && (
+                        <div className={`card-oracle-whisper whisper-tier-${cardData.tierIndex}`}>
+                          “{getDarkOracleQuote(cardData.tierIndex, cardData.sigilSeed ?? cardData.roll)}”
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -684,8 +813,8 @@ export function CardStage({
           })}
         </div>
 
-        {/* Card Pedestal / Magic Summoning Ground */}
-        <div className={`card-pedestal ${spreadState === 'awaiting_pick' ? 'pedestal-pulse' : ''}`} />
+        {/* Pentagram Rune Resonance Circle (Under the Cards) */}
+        <RuneResonanceCircle streak={streak} isAwaiting={spreadState === 'awaiting_pick'} />
 
         {/* Stage Status / Instructions Box */}
         <div className="stage-status-box">
@@ -693,6 +822,19 @@ export function CardStage({
             <div className="awaiting-pick-prompt">
               <span className="prompt-dot" />
               <span className="prompt-text">CHOOSE YOUR CARD</span>
+            </div>
+          )}
+
+          {spreadState === 'squeezing' && (
+            <div className={`opening-text squeeze-suspense-banner tier-${squeezingTier ?? 0}`}>
+              <span className="prompt-dot pulse" />
+              {squeezingTier === 3
+                ? '★ DESTINY PEEKING... ★'
+                : squeezingTier === 2
+                  ? '✦ GOLDEN FLAME PEEKING... ✦'
+                  : squeezingTier === 1
+                    ? '✧ SILVER ESSENCE RISING... ✧'
+                    : '☠ VOID CORRUPTION SENSING... ☠'}
             </div>
           )}
 
@@ -718,6 +860,18 @@ export function CardStage({
                       : 'CURSED (x0.0)'}
               </span>
               <span className="badge-desc">{chosenCard.description}</span>
+
+              {/* DARK ORACLE PROPHECY MICRO-COPY */}
+              <div className={`dark-oracle-prophecy oracle-tier-${chosenCard.tierIndex}`}>
+                <span className="oracle-quote-glyph">“</span>
+                <span className="oracle-quote-content">
+                  {getDarkOracleQuote(
+                    chosenCard.tierIndex,
+                    chosenCard.sigilSeed ?? outcome.roll ?? outcome.randomness,
+                  )}
+                </span>
+                <span className="oracle-quote-glyph">”</span>
+              </div>
             </div>
           )}
 
@@ -725,6 +879,158 @@ export function CardStage({
             <div className="idle-text">Set your wager and click Draw Card to begin</div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Rune Resonance Pentagram Sigil Circle
+ * Interactive 5-Seal Pentagram Matrix with 3D Tabletop Perspective
+ * - Streak 1: Seal 1 awakens with ethereal cyan-gold ring.
+ * - Streak 2: Seal 2 erupts in blazing golden flame.
+ * - Streak 3+: Entire matrix rotates in continuous 'FATE SURGE' plasma overdrive!
+ */
+export function RuneResonanceCircle({
+  streak = 0,
+  isAwaiting = false,
+}: {
+  streak?: number;
+  isAwaiting?: boolean;
+}) {
+  const isSurge = streak >= 3;
+  const isSeal1 = streak >= 1;
+  const isSeal2 = streak >= 2;
+
+  return (
+    <div className="rune-resonance-stage-circle">
+      <div className={`pentagram-svg-pad ${isSurge ? 'fate-surge-active' : ''} ${isAwaiting ? 'awaiting-pulse' : ''}`}>
+        <svg className="pentagram-svg" viewBox="0 0 280 280" fill="none">
+          <defs>
+            <radialGradient id="sigilCoreGlow" cx="50%" cy="50%" r="50%">
+              <stop
+                offset="0%"
+                stopColor={isSurge ? '#c084fc' : isSeal2 ? '#f59e0b' : isSeal1 ? '#38bdf8' : '#d97706'}
+                stopOpacity={isSurge ? 0.6 : isSeal1 ? 0.4 : 0.15}
+              />
+              <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+            </radialGradient>
+            <linearGradient id="pentagramLineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={isSurge ? '#e879f9' : isSeal2 ? '#fbbf24' : isSeal1 ? '#38bdf8' : '#b45309'} />
+              <stop offset="50%" stopColor={isSurge ? '#38bdf8' : isSeal2 ? '#f59e0b' : isSeal1 ? '#94a3b8' : '#78350f'} />
+              <stop offset="100%" stopColor={isSurge ? '#facc15' : isSeal2 ? '#d97706' : isSeal1 ? '#cbd5e1' : '#451a03'} />
+            </linearGradient>
+          </defs>
+
+          {/* Core Ambient Radial Glow Disc */}
+          <circle cx="140" cy="140" r="105" fill="url(#sigilCoreGlow)" />
+
+          {/* Outer Ring Inscriptions */}
+          <circle
+            cx="140"
+            cy="140"
+            r="126"
+            stroke={isSurge ? '#c084fc' : isSeal2 ? '#f59e0b' : isSeal1 ? '#94a3b8' : '#78350f'}
+            strokeWidth="1.5"
+            strokeDasharray="4 6"
+            opacity={isSurge ? 0.9 : 0.6}
+          />
+          <circle
+            cx="140"
+            cy="140"
+            r="114"
+            stroke={isSurge ? '#e879f9' : isSeal2 ? '#fbbf24' : isSeal1 ? '#cbd5e1' : '#92400e'}
+            strokeWidth="1"
+            opacity={isSurge ? 0.95 : 0.7}
+          />
+          <circle
+            cx="140"
+            cy="140"
+            r="98"
+            stroke={isSurge ? '#38bdf8' : isSeal2 ? '#f59e0b' : '#78350f'}
+            strokeWidth="1.2"
+            strokeDasharray="2 4"
+            opacity={0.7}
+          />
+
+          {/* Pentagram 5-Point Star Geometry */}
+          <polygon
+            points="140,42 197.6,219.3 46.8,109.7 233.2,109.7 82.4,219.3"
+            stroke="url(#pentagramLineGrad)"
+            strokeWidth={isSurge ? 2.5 : isSeal2 ? 2 : isSeal1 ? 1.8 : 1.2}
+            fill={isSurge ? 'rgba(168, 85, 247, 0.08)' : isSeal2 ? 'rgba(245, 158, 11, 0.06)' : 'none'}
+            className={isSurge ? 'molten-star-lines' : ''}
+          />
+
+          {/* Inner Inscribed Hexagon / Circle */}
+          <circle
+            cx="140"
+            cy="140"
+            r="38"
+            stroke={isSurge ? '#e879f9' : isSeal2 ? '#fbbf24' : '#78350f'}
+            strokeWidth="1.5"
+            opacity={0.8}
+          />
+
+          {/* Center Mystic Arcana Eye / Glyph */}
+          <circle
+            cx="140"
+            cy="140"
+            r="14"
+            fill={isSurge ? '#f5d0fe' : isSeal2 ? '#fef08a' : isSeal1 ? '#e0f2fe' : '#92400e'}
+            opacity={isSurge ? 0.9 : isSeal1 ? 0.7 : 0.4}
+            className={isSurge ? 'center-core-pulse' : ''}
+          />
+          <circle
+            cx="140"
+            cy="140"
+            r="6"
+            fill={isSurge ? '#7e22ce' : isSeal2 ? '#b45309' : '#0f172a'}
+          />
+
+          {/* 5 Runic Nodes on the Vertices */}
+          {/* Node 0: Top (✦ Seal of Ether) */}
+          <g className={`sigil-node node-0 ${isSeal1 ? 'node-active node-seal-1' : 'node-dormant'}`}>
+            <circle cx="140" cy="42" r={isSeal1 ? 12 : 9} className="node-glow-ring" />
+            <circle cx="140" cy="42" r={isSeal1 ? 8 : 6} className="node-core" />
+            <text x="140" y="45.5" textAnchor="middle" className="node-glyph">✦</text>
+          </g>
+
+          {/* Node 1: Top-Right (ᚠ Seal of Wealth) */}
+          <g className={`sigil-node node-1 ${isSeal2 ? 'node-active node-seal-2' : 'node-dormant'}`}>
+            <circle cx="233.2" cy="109.7" r={isSeal2 ? 12 : 9} className="node-glow-ring" />
+            <circle cx="233.2" cy="109.7" r={isSeal2 ? 8 : 6} className="node-core" />
+            <text x="233.2" y="113.2" textAnchor="middle" className="node-glyph">ᚠ</text>
+          </g>
+
+          {/* Node 2: Bottom-Right (ᛊ Seal of Sun) */}
+          <g className={`sigil-node node-2 ${isSurge ? 'node-active node-seal-3' : 'node-dormant'}`}>
+            <circle cx="197.6" cy="219.3" r={isSurge ? 12 : 9} className="node-glow-ring" />
+            <circle cx="197.6" cy="219.3" r={isSurge ? 8 : 6} className="node-core" />
+            <text x="197.6" y="222.8" textAnchor="middle" className="node-glyph">ᛊ</text>
+          </g>
+
+          {/* Node 3: Bottom-Left (ᛞ Seal of Destiny) */}
+          <g className={`sigil-node node-3 ${isSurge ? 'node-active node-seal-4' : 'node-dormant'}`}>
+            <circle cx="82.4" cy="219.3" r={isSurge ? 12 : 9} className="node-glow-ring" />
+            <circle cx="82.4" cy="219.3" r={isSurge ? 8 : 6} className="node-core" />
+            <text x="82.4" y="222.8" textAnchor="middle" className="node-glyph">ᛞ</text>
+          </g>
+
+          {/* Node 4: Top-Left (ᚱ Seal of Journey) */}
+          <g className={`sigil-node node-4 ${isSurge ? 'node-active node-seal-5' : 'node-dormant'}`}>
+            <circle cx="46.8" cy="109.7" r={isSurge ? 12 : 9} className="node-glow-ring" />
+            <circle cx="46.8" cy="109.7" r={isSurge ? 8 : 6} className="node-core" />
+            <text x="46.8" y="113.2" textAnchor="middle" className="node-glyph">ᚱ</text>
+          </g>
+        </svg>
+      </div>
+
+      <div className={`resonance-circle-status status-tier-${isSurge ? 'surge' : streak}`}>
+        {streak === 0 && '✦ PENTAGRAM SIGIL CIRCLE • DORMANT ✦'}
+        {streak === 1 && '✧ SEAL I RESONATING • 1X RESONANCE ✧'}
+        {streak === 2 && '✦ SEAL II BLAZING • 2X RESONANCE ✦'}
+        {streak >= 3 && `⚡ FATE SURGE ACTIVE • ${streak}X RESONANCE OVERDRIVE ⚡`}
       </div>
     </div>
   );

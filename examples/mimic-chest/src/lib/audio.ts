@@ -532,6 +532,137 @@ class SoundManager {
     this.playCardDraw();
   }
 
+  /**
+   * Resonant Runic Chime / Astral Surge for the Rune Resonance Pentagram Circle.
+   * - Streak 1: Crystal chime (528Hz Solfeggio frequency + bell harmonic).
+   * - Streak 2: Blazing golden triad bell chord (440Hz + 554Hz + 659Hz).
+   * - Streak 3+: Triumphant astral power crescendo with surging harmonic arpeggio!
+   */
+  public playRuneResonance(streak: number) {
+    if (!this.sfxEnabled) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    this.duckBgm(1400);
+    const now = this.ctx.currentTime;
+
+    if (streak === 1) {
+      // Crystal chime / Solfeggio 528Hz
+      const freqs = [528, 1056];
+      freqs.forEach((freq, idx) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.18 / (idx + 1), now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGainNode ?? this.ctx!.destination);
+        osc.start(now);
+        osc.stop(now + 1.25);
+      });
+    } else if (streak === 2) {
+      // Golden triad bell chord (A4 major: 440, 554, 659 Hz)
+      const freqs = [440, 554, 659, 1318];
+      freqs.forEach((freq, idx) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        osc.type = idx === 0 ? 'triangle' : 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.16 / Math.sqrt(idx + 1), now + 0.025);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGainNode ?? this.ctx!.destination);
+        osc.start(now);
+        osc.stop(now + 1.45);
+      });
+    } else {
+      // Streak 3+: Astral Surge Arpeggio & Harmonic Chorus
+      const notes = [440, 554, 659, 880, 1108, 1320];
+      notes.forEach((freq, idx) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        const startTime = now + idx * 0.06;
+        osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(freq, startTime);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.02, startTime + 0.5);
+
+        gain.gain.setValueAtTime(0.001, startTime);
+        gain.gain.linearRampToValueAtTime(0.14, startTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 1.6);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGainNode ?? this.ctx!.destination);
+        osc.start(startTime);
+        osc.stop(startTime + 1.65);
+      });
+    }
+  }
+
+  /**
+   * Suspenseful rising pitch tension sweep for the Slow Peek / Squeeze mechanic (~420ms).
+   * Generates an eerie, escalating synth riser with harmonic tension before the dramatic card flip.
+   */
+  public playCardSqueeze(tierIndex: number = 0) {
+    if (!this.sfxEnabled) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    this.duckBgm(1600);
+
+    const now = this.ctx.currentTime;
+    const duration = 0.44;
+
+    // 1. Primary tension riser oscillator (rising 130Hz -> 760Hz - 980Hz)
+    const osc1 = this.ctx.createOscillator();
+    const filter1 = this.ctx.createBiquadFilter();
+    const gain1 = this.ctx.createGain();
+
+    osc1.type = tierIndex === 3 ? 'sawtooth' : tierIndex === 0 ? 'sawtooth' : 'triangle';
+    osc1.frequency.setValueAtTime(130, now);
+    const targetEndFreq = tierIndex === 3 ? 980 : tierIndex === 2 ? 840 : tierIndex === 1 ? 720 : 620;
+    osc1.frequency.exponentialRampToValueAtTime(targetEndFreq, now + duration);
+
+    filter1.type = 'bandpass';
+    filter1.frequency.setValueAtTime(300, now);
+    filter1.frequency.exponentialRampToValueAtTime(tierIndex === 3 ? 2800 : 2000, now + duration);
+    filter1.Q.setValueAtTime(3.2, now);
+
+    gain1.gain.setValueAtTime(0.001, now);
+    gain1.gain.linearRampToValueAtTime(0.22, now + duration * 0.85);
+    gain1.gain.linearRampToValueAtTime(0.32, now + duration);
+
+    osc1.connect(filter1);
+    filter1.connect(gain1);
+    gain1.connect(this.sfxGainNode ?? this.ctx.destination);
+
+    osc1.start(now);
+    osc1.stop(now + duration + 0.02);
+
+    // 2. Harmonic shimmer / tension undertone
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+
+    osc2.type = 'sine';
+    const startFreq = tierIndex === 0 ? 80 : 220;
+    const endFreq = tierIndex === 3 ? 1520 : tierIndex === 2 ? 1200 : 700;
+    osc2.frequency.setValueAtTime(startFreq, now);
+    osc2.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
+
+    gain2.gain.setValueAtTime(0.001, now);
+    gain2.gain.linearRampToValueAtTime(tierIndex === 3 ? 0.22 : 0.15, now + duration);
+
+    osc2.connect(gain2);
+    gain2.connect(this.sfxGainNode ?? this.ctx.destination);
+
+    osc2.start(now);
+    osc2.stop(now + duration + 0.02);
+  }
+
   public playCardFlip() {
     if (!this.sfxEnabled) return;
     this.initContext();
