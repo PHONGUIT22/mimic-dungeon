@@ -3,14 +3,30 @@ import { PAYTABLE, type HistoryItem, type DisplayCard, getCardForOutcome } from 
 import {
   SACRED_ARCHETYPES,
   type MysticCardDef,
+  RELIC_EDITIONS,
+  TOTAL_RELICS_COUNT,
+  RELIC_MILESTONES,
+  getArchetypeIndexForCard,
+  getRelicId,
   computeUnlockedPillarsIndices,
+  getCurrentMilestone,
 } from '../lib/proceduralNames';
 import { ProceduralSigil } from './ProceduralSigil';
+import {
+  GrimoireIcon,
+  TemplePillarIcon,
+  ScrollIcon,
+  CloseIcon,
+  CheckIcon,
+  LockIcon,
+  StarIcon,
+} from './Icons';
 
 export interface CollectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   discoveredCardIds: string[];
+  discoveredRelicIds?: string[];
   history?: HistoryItem[];
 }
 
@@ -18,6 +34,7 @@ export function CollectionModal({
   isOpen,
   onClose,
   discoveredCardIds,
+  discoveredRelicIds = [],
   history = [],
 }: CollectionModalProps) {
   const [activeTab, setActiveTab] = useState<'pillars' | 'archive'>('pillars');
@@ -30,9 +47,41 @@ export function CollectionModal({
     [discoveredCardIds],
   );
 
+  // Set of all discovered relic keys: 'RELIC_${archetypeIndex}_${edition}'
+  const relicSet = useMemo(() => {
+    const set = new Set<string>(discoveredRelicIds);
+    // Also derive any relics present in history to guarantee 100% synchronization
+    if (history && history.length > 0) {
+      for (const item of history) {
+        const card =
+          item.outcome.card ??
+          getCardForOutcome(
+            item.outcome.tierIndex,
+            item.outcome.roll,
+            item.wager,
+            item.outcome.randomness,
+          );
+        const archIdx = getArchetypeIndexForCard(card?.cardId, card?.tierIndex);
+        const edition = card?.edition || item.outcome.edition || 'standard';
+        set.add(getRelicId(archIdx, edition));
+      }
+    }
+    // Also derive standard editions for any pillars in discoveredCardIds
+    for (const cardId of discoveredCardIds) {
+      const archIdx = getArchetypeIndexForCard(cardId, 0);
+      set.add(getRelicId(archIdx, 'standard'));
+    }
+    return set;
+  }, [discoveredRelicIds, history, discoveredCardIds]);
+
+  const relicCount = Math.min(TOTAL_RELICS_COUNT, relicSet.size);
+  const { current: currentMilestone, progressPercent: relicProgressPercent } = useMemo(
+    () => getCurrentMilestone(relicCount),
+    [relicCount],
+  );
+
   const totalPillars = allPillars.length;
-  const discoveredCount = unlockedIndices.size;
-  const progressPercent = Math.round((discoveredCount / totalPillars) * 100);
+  const discoveredPillarsCount = unlockedIndices.size;
 
   // Extract all unique channeled cards from gameplay history
   const channeledCards = useMemo(() => {
@@ -62,27 +111,119 @@ export function CollectionModal({
       <div
         className="modal-card collection-modal-card"
         onClick={e => e.stopPropagation()}
-        style={{ maxWidth: '750px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+        style={{ maxWidth: '820px', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}
       >
         {/* Modal Header */}
         <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '20px' }}>🔯</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '6px',
+                background: 'rgba(245, 158, 11, 0.12)',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--accent-gold)',
+              }}
+            >
+              <GrimoireIcon size={18} />
+            </div>
             <div>
               <h2
                 className="font-heading"
-                style={{ fontSize: '16px', fontWeight: 800, color: '#fff', letterSpacing: '0.5px' }}
+                style={{ fontSize: '17px', fontWeight: 800, color: '#fff', letterSpacing: '0.5px' }}
               >
-                SACRED SIGIL COMPENDIUM
+                TAROT CODEX & ARCANA RELICS
               </h2>
               <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                INFINITE PROCEDURAL CODEX • {channeledCards.length} UNIQUE SIGILS DISCOVERED
+                {relicCount} / {TOTAL_RELICS_COUNT} ARCANA RELICS DISCOVERED • {currentMilestone ? currentMilestone.name.toUpperCase() : 'NOVICE SEEKER'}
               </span>
             </div>
           </div>
           <button onClick={onClose} className="modal-close-btn" title="Close">
-            ✕
+            <CloseIcon size={14} />
           </button>
+        </div>
+
+        {/* Milestone Badges Tracker Banner (Task 3.2) */}
+        <div
+          className="codex-milestones-bar"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '8px',
+            margin: '6px 0 10px 0',
+            padding: '8px 10px',
+            background: 'var(--bg-inset)',
+            borderRadius: '6px',
+            border: '1px solid var(--border-subtle)',
+          }}
+        >
+          {RELIC_MILESTONES.map(milestone => {
+            const isAchieved = relicCount >= milestone.count;
+            return (
+              <div
+                key={milestone.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '6px 8px',
+                  borderRadius: '5px',
+                  background: isAchieved ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.2)',
+                  border: isAchieved ? `1px solid ${milestone.accentColor}66` : '1px dashed rgba(255, 255, 255, 0.1)',
+                  boxShadow: isAchieved ? `0 0 10px ${milestone.accentColor}20` : 'none',
+                }}
+                title={`${milestone.name} (${milestone.count} Relics): ${milestone.description}`}
+              >
+                <div
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    background: isAchieved ? `${milestone.accentColor}22` : 'rgba(255, 255, 255, 0.05)',
+                    border: `1px solid ${isAchieved ? milestone.accentColor : 'rgba(255, 255, 255, 0.15)'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: isAchieved ? milestone.accentColor : 'var(--text-muted)',
+                    fontSize: '11px',
+                    flexShrink: 0,
+                  }}
+                >
+                  {isAchieved ? <CheckIcon size={12} /> : <StarIcon size={11} />}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <span
+                    style={{
+                      fontFamily: 'Rubik, sans-serif',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: isAchieved ? '#ffffff' : 'var(--text-secondary)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {milestone.name}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: 'monospace',
+                      fontSize: '9px',
+                      color: isAchieved ? milestone.accentColor : 'var(--text-muted)',
+                    }}
+                  >
+                    {isAchieved ? `${milestone.count} Relics ✓` : `${relicCount}/${milestone.count}`}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Tab Switcher Navigation */}
@@ -92,7 +233,7 @@ export function CollectionModal({
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '6px 0 10px 0',
+            paddingBottom: '8px',
             borderBottom: '1px solid var(--border-subtle)',
             marginBottom: '8px',
           }}
@@ -105,20 +246,19 @@ export function CollectionModal({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
+              gap: '8px',
               padding: '8px 12px',
               borderRadius: '5px',
-              border: activeTab === 'pillars' ? '1px solid #f59e0b' : '1px solid var(--border-subtle)',
+              border: activeTab === 'pillars' ? '1px solid var(--accent-gold)' : '1px solid var(--border-subtle)',
               background: activeTab === 'pillars' ? 'rgba(245, 158, 11, 0.12)' : 'var(--bg-inset)',
-              color: activeTab === 'pillars' ? '#f59e0b' : 'var(--text-secondary)',
+              color: activeTab === 'pillars' ? 'var(--accent-gold)' : 'var(--text-secondary)',
               fontWeight: activeTab === 'pillars' ? 800 : 600,
               fontSize: '12px',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-              boxShadow: activeTab === 'pillars' ? '0 0 12px rgba(245, 158, 11, 0.25)' : 'none',
             }}
           >
-            <span>🏛️</span> 12 Primal Pillars ({discoveredCount}/12)
+            <TemplePillarIcon size={14} /> 12 Primal Pillars ({discoveredPillarsCount}/{totalPillars})
           </button>
 
           <button
@@ -129,7 +269,7 @@ export function CollectionModal({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
+              gap: '8px',
               padding: '8px 12px',
               borderRadius: '5px',
               border: activeTab === 'archive' ? '1px solid #c084fc' : '1px solid var(--border-subtle)',
@@ -139,21 +279,20 @@ export function CollectionModal({
               fontSize: '12px',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-              boxShadow: activeTab === 'archive' ? '0 0 12px rgba(192, 132, 252, 0.25)' : 'none',
             }}
           >
-            <span>📜</span> Channeled Archive ({channeledCards.length} Sigils)
+            <ScrollIcon size={14} /> Channeled Archive ({channeledCards.length} Sigils)
           </button>
         </div>
 
         {/* TAB 1: 12 PRIMAL PILLARS */}
         {activeTab === 'pillars' && (
           <>
-            {/* Discovery Progress Bar Banner */}
+            {/* Relics Progress Bar Banner */}
             <div
               style={{
-                margin: '2px 0 8px 0',
-                padding: '10px 14px',
+                margin: '0 0 8px 0',
+                padding: '8px 12px',
                 borderRadius: '6px',
                 background: 'var(--bg-inset)',
                 border: '1px solid var(--border-subtle)',
@@ -169,12 +308,12 @@ export function CollectionModal({
                       fontFamily: 'monospace',
                       fontSize: '11px',
                       fontWeight: 800,
-                      color: progressPercent === 100 ? 'var(--accent-gold)' : 'var(--text-primary)',
+                      color: relicCount === TOTAL_RELICS_COUNT ? 'var(--accent-gold)' : 'var(--text-primary)',
                     }}
                   >
-                    DISCOVERED: {discoveredCount} / {totalPillars} ({progressPercent}%)
+                    COMPLETION: {relicCount} / {TOTAL_RELICS_COUNT} RELICS ({relicProgressPercent}%)
                   </span>
-                  {progressPercent === 100 && (
+                  {relicCount === TOTAL_RELICS_COUNT && (
                     <span
                       style={{
                         fontFamily: 'monospace',
@@ -186,12 +325,12 @@ export function CollectionModal({
                         color: '#000',
                       }}
                     >
-                      ★ ARCH-MAGE OF DESTINY ★
+                      ★ GRAND INQUISITOR ★
                     </span>
                   )}
                 </div>
                 <span style={{ fontFamily: 'monospace', fontSize: '10px', color: 'var(--text-muted)' }}>
-                  12 SACRED FOUNDATIONS
+                  12 ARCHETYPES × 4 EDITIONS
                 </span>
               </div>
 
@@ -208,15 +347,14 @@ export function CollectionModal({
               >
                 <div
                   style={{
-                    width: `${progressPercent}%`,
+                    width: `${relicProgressPercent}%`,
                     height: '100%',
                     background:
-                      progressPercent === 100
-                        ? 'linear-gradient(90deg, #f59e0b, #a855f7, #00e701)'
+                      relicCount === TOTAL_RELICS_COUNT
+                        ? 'linear-gradient(90deg, #f59e0b, #c084fc, #00e701)'
                         : 'linear-gradient(90deg, #38bdf8, #f59e0b)',
                     borderRadius: '3px',
                     transition: 'width 0.4s ease',
-                    boxShadow: '0 0 8px rgba(245, 158, 11, 0.6)',
                   }}
                 />
               </div>
@@ -228,7 +366,7 @@ export function CollectionModal({
               style={{
                 flex: 1,
                 overflowY: 'auto',
-                padding: '6px 2px 10px 2px',
+                padding: '4px 2px 8px 2px',
                 display: 'grid',
                 gridTemplateColumns: 'repeat(4, 1fr)',
                 gap: '8px',
@@ -252,14 +390,13 @@ export function CollectionModal({
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        minHeight: '190px',
+                        minHeight: '205px',
                         opacity: 0.65,
                         position: 'relative',
                         overflow: 'hidden',
                       }}
-                      title="Undiscovered Sigil • Draw cards to summon!"
+                      title="Veiled Archetype • Draw cards to summon!"
                     >
-                      {/* Card Header */}
                       <div
                         style={{
                           width: '100%',
@@ -286,7 +423,6 @@ export function CollectionModal({
                         </span>
                       </div>
 
-                      {/* Center Locked Glyphs */}
                       <div
                         style={{
                           flex: 1,
@@ -294,26 +430,23 @@ export function CollectionModal({
                           flexDirection: 'column',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '4px',
+                          gap: '6px',
                           padding: '12px 0',
                         }}
                       >
                         <div
                           style={{
-                            width: '44px',
-                            height: '44px',
+                            width: '40px',
+                            height: '40px',
                             borderRadius: '50%',
                             border: '1px dashed #334155',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            color: '#475569',
-                            fontSize: '20px',
-                            fontFamily: 'monospace',
-                            fontWeight: 900,
+                            color: '#64748b',
                           }}
                         >
-                          ?
+                          <LockIcon size={16} />
                         </div>
                         <span
                           style={{
@@ -324,11 +457,10 @@ export function CollectionModal({
                             letterSpacing: '1px',
                           }}
                         >
-                          UNREVEALED
+                          VEILED ARCHETYPE
                         </span>
                       </div>
 
-                      {/* Card Footer */}
                       <div
                         style={{
                           width: '100%',
@@ -346,7 +478,7 @@ export function CollectionModal({
                   );
                 }
 
-                // UNLOCKED CARD
+                // UNLOCKED CARD: Display card info & 4 Edition Relic slots (Task 3.2)
                 return (
                   <div
                     key={card.id}
@@ -354,18 +486,17 @@ export function CollectionModal({
                     style={{
                       borderRadius: '6px',
                       background: 'var(--bg-inset)',
-                      border: `1px solid ${tierInfo.color}55`,
+                      border: `1px solid ${tierInfo.color}45`,
                       borderTop: `3px solid ${tierInfo.color}`,
                       padding: '10px 8px',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      minHeight: '190px',
+                      minHeight: '205px',
                       position: 'relative',
                       overflow: 'hidden',
-                      boxShadow: `0 4px 14px rgba(0, 0, 0, 0.5), 0 0 12px ${tierInfo.color}22`,
-                      transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                      boxShadow: `0 4px 14px rgba(0, 0, 0, 0.5), 0 0 12px ${tierInfo.color}15`,
                     }}
                   >
                     {/* Card Header */}
@@ -405,18 +536,85 @@ export function CollectionModal({
                       </span>
                     </div>
 
-                    {/* Center Pure SVG Procedural Sigil */}
+                    {/* Center Procedural Sigil Artwork */}
                     <div
                       style={{
-                        width: '64px',
-                        height: '64px',
+                        width: '58px',
+                        height: '58px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        margin: '6px 0',
+                        margin: '4px 0',
                       }}
                     >
                       <ProceduralSigil seed={card.sigilSeed} tier={card.tierIndex} className="w-full h-full" />
+                    </div>
+
+                    {/* 4 Edition Relic Completion Badges (Task 3.2) */}
+                    <div
+                      style={{
+                        width: '100%',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(4, 1fr)',
+                        gap: '3px',
+                        margin: '4px 0',
+                        padding: '3px',
+                        background: 'rgba(0, 0, 0, 0.35)',
+                        borderRadius: '4px',
+                        border: '1px solid rgba(255, 255, 255, 0.06)',
+                      }}
+                    >
+                      {RELIC_EDITIONS.map(edition => {
+                        const relicId = getRelicId(cardIdx, edition);
+                        const isOwned = relicSet.has(relicId);
+                        const label = edition === 'standard' ? 'STD' : edition === 'foil' ? 'FOIL' : edition === 'holo' ? 'HOLO' : 'POLY';
+
+                        return (
+                          <div
+                            key={edition}
+                            style={{
+                              textAlign: 'center',
+                              fontSize: '8px',
+                              fontFamily: 'monospace',
+                              fontWeight: 800,
+                              padding: '2px 0',
+                              borderRadius: '2px',
+                              background: isOwned
+                                ? edition === 'polychrome'
+                                  ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(168, 85, 247, 0.3))'
+                                  : edition === 'holo'
+                                    ? 'rgba(56, 189, 248, 0.25)'
+                                    : edition === 'foil'
+                                      ? 'rgba(245, 158, 11, 0.25)'
+                                      : 'rgba(255, 255, 255, 0.15)'
+                                : 'rgba(0, 0, 0, 0.4)',
+                              color: isOwned
+                                ? edition === 'polychrome'
+                                  ? '#f472b6'
+                                  : edition === 'holo'
+                                    ? '#38bdf8'
+                                    : edition === 'foil'
+                                      ? '#fbbf24'
+                                      : '#ffffff'
+                                : 'rgba(255, 255, 255, 0.2)',
+                              border: isOwned
+                                ? `1px solid ${
+                                    edition === 'polychrome'
+                                      ? '#ec4899'
+                                      : edition === 'holo'
+                                        ? '#38bdf8'
+                                        : edition === 'foil'
+                                          ? '#f59e0b'
+                                          : 'rgba(255, 255, 255, 0.3)'
+                                  }`
+                                : '1px solid transparent',
+                            }}
+                            title={`${card.name} (${edition.toUpperCase()} edition): ${isOwned ? 'Discovered!' : 'Locked'}`}
+                          >
+                            {isOwned ? label : '—'}
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {/* Card Footer Info */}
@@ -466,7 +664,7 @@ export function CollectionModal({
             {/* Archive Summary Banner */}
             <div
               style={{
-                margin: '2px 0 8px 0',
+                margin: '0 0 8px 0',
                 padding: '10px 14px',
                 borderRadius: '6px',
                 background: 'var(--bg-inset)',
@@ -521,12 +719,25 @@ export function CollectionModal({
                   color: 'var(--text-muted)',
                 }}
               >
-                <span style={{ fontSize: '32px' }}>✨</span>
+                <div
+                  style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  <ScrollIcon size={22} />
+                </div>
                 <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)' }}>
                   No Channeled Sigils Recorded Yet
                 </span>
                 <span style={{ fontSize: '11px', maxWidth: '380px', textAlign: 'center' }}>
-                  Place wagers and open mystery cards to channel rare procedural sigils with Foil, Holo, and Polychrome editions!
+                  Place wagers and open cards to channel rare procedural sigils with Foil, Holo, and Polychrome editions!
                 </span>
               </div>
             ) : (
@@ -535,7 +746,7 @@ export function CollectionModal({
                 style={{
                   flex: 1,
                   overflowY: 'auto',
-                  padding: '6px 2px 10px 2px',
+                  padding: '4px 2px 8px 2px',
                   display: 'grid',
                   gridTemplateColumns: 'repeat(4, 1fr)',
                   gap: '8px',
@@ -552,7 +763,7 @@ export function CollectionModal({
                       style={{
                         borderRadius: '6px',
                         background: 'var(--bg-inset)',
-                        border: `1px solid ${tierInfo.color}55`,
+                        border: `1px solid ${tierInfo.color}45`,
                         borderTop: `3px solid ${tierInfo.color}`,
                         padding: '10px 8px',
                         display: 'flex',
@@ -562,8 +773,7 @@ export function CollectionModal({
                         minHeight: '190px',
                         position: 'relative',
                         overflow: 'hidden',
-                        boxShadow: `0 4px 14px rgba(0, 0, 0, 0.5), 0 0 12px ${tierInfo.color}22`,
-                        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                        boxShadow: `0 4px 14px rgba(0, 0, 0, 0.5), 0 0 12px ${tierInfo.color}15`,
                       }}
                     >
                       {/* Edition Sheen Background */}
@@ -599,7 +809,7 @@ export function CollectionModal({
                             className={`card-edition-badge edition-${card.edition}`}
                             style={{ fontSize: '8px', padding: '1px 4px' }}
                           >
-                            {card.edition === 'polychrome' ? '★ POLY ★' : card.edition.toUpperCase()}
+                            {card.edition === 'polychrome' ? 'POLYCHROME' : card.edition.toUpperCase()}
                           </span>
                         )}
 
@@ -622,8 +832,8 @@ export function CollectionModal({
                       {/* Center Pure SVG Procedural Sigil */}
                       <div
                         style={{
-                          width: '64px',
-                          height: '64px',
+                          width: '60px',
+                          height: '60px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -694,8 +904,8 @@ export function CollectionModal({
         >
           <span style={{ fontFamily: 'monospace', fontSize: '10px', color: 'var(--text-muted)' }}>
             {activeTab === 'pillars'
-              ? 'Tip: Draw cards across all 4 tiers to discover the 12 sacred pillars!'
-              : `Tip: You have channeled ${channeledCards.length} unique sigils in this session!`}
+              ? `Arcana Relics: Discover Standard, Foil, Holo, and Polychrome editions of all 12 Archetypes!`
+              : `Channeled Sigils: ${channeledCards.length} unique algorithmic signatures preserved.`}
           </span>
 
           <button
@@ -705,7 +915,7 @@ export function CollectionModal({
               borderRadius: '4px',
               background: '#212b39',
               border: '1px solid var(--border-medium)',
-              padding: '6px 14px',
+              padding: '6px 16px',
               fontFamily: 'Rubik, sans-serif',
               fontSize: '12px',
               fontWeight: 700,

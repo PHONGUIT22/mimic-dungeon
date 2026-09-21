@@ -199,8 +199,8 @@ export function CardStage({
                         <stop offset="100%" stopColor="#78350f" />
                       </linearGradient>
                       <radialGradient id="arcaneCore" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor="#818cf8" stopOpacity="0.8" />
-                        <stop offset="40%" stopColor="#4f46e5" stopOpacity="0.3" />
+                        <stop offset="0%" stopColor="#c084fc" stopOpacity="0.8" />
+                        <stop offset="40%" stopColor="#7e22ce" stopOpacity="0.3" />
                         <stop offset="100%" stopColor="#000000" stopOpacity="0" />
                       </radialGradient>
                     </defs>

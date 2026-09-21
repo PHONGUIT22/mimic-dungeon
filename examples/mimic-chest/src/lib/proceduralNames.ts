@@ -469,3 +469,105 @@ export function computeUnlockedPillarsCount(discoveredCardIds: string[]): number
   return computeUnlockedPillarsIndices(discoveredCardIds).size;
 }
 
+// -------------------------------------------------------------
+// 48 ARCANA RELICS SYSTEM (12 Archetypes × 4 Editions) - TASK 3.2
+// -------------------------------------------------------------
+
+export type RelicEdition = 'standard' | 'foil' | 'holo' | 'polychrome';
+export const RELIC_EDITIONS: RelicEdition[] = ['standard', 'foil', 'holo', 'polychrome'];
+export const TOTAL_RELICS_COUNT = 48; // 12 Archetypes × 4 Editions
+
+export interface RelicMilestone {
+  id: string;
+  name: string;
+  count: number;
+  description: string;
+  glyph: string;
+  accentColor: string;
+}
+
+export const RELIC_MILESTONES: RelicMilestone[] = [
+  {
+    id: 'novice_seeker',
+    name: 'Novice Seeker',
+    count: 5,
+    description: 'Commune with 5 unique Arcana relics',
+    glyph: '✦',
+    accentColor: '#38bdf8',
+  },
+  {
+    id: 'occult_adept',
+    name: 'Occult Adept',
+    count: 15,
+    description: 'Channel 15 relics into the ancient compendium',
+    glyph: '◈',
+    accentColor: '#cbd5e1',
+  },
+  {
+    id: 'fate_weaver',
+    name: 'Fate Weaver',
+    count: 30,
+    description: 'Master 30 prismatic, holographic, and foil relics',
+    glyph: '✵',
+    accentColor: '#f59e0b',
+  },
+  {
+    id: 'grand_inquisitor',
+    name: 'Grand Inquisitor',
+    count: 48,
+    description: 'Complete all 48 Arcana relics of the sacred compendium',
+    glyph: '★',
+    accentColor: '#c084fc',
+  },
+];
+
+export function getArchetypeIndexForCard(cardId: string = '', tierIndex: number = 0): number {
+  if (LEGACY_INDEX_MAP[cardId] !== undefined) {
+    return LEGACY_INDEX_MAP[cardId];
+  }
+  const directIdx = SACRED_ARCHETYPES.findIndex(c => c.id === cardId);
+  if (directIdx !== -1) {
+    return directIdx;
+  }
+  if (cardId.startsWith('SIGIL_')) {
+    if (cardId.includes('_MIMIC_')) {
+      return Math.abs(cardId.length) % 3;
+    } else if (cardId.includes('_SILVER_')) {
+      return 3 + (Math.abs(cardId.length) % 3);
+    } else if (cardId.includes('_GOLD_')) {
+      return 6 + (Math.abs(cardId.length) % 3);
+    } else if (cardId.includes('_LEGENDARY_')) {
+      return 9 + (Math.abs(cardId.length) % 3);
+    }
+  }
+  const safeTier = Math.max(0, Math.min(3, tierIndex));
+  return safeTier * 3;
+}
+
+export function getRelicId(archetypeIndex: number, edition: string = 'standard'): string {
+  const normEdition = ['standard', 'foil', 'holo', 'polychrome'].includes(edition) ? edition : 'standard';
+  return `RELIC_${Math.max(0, Math.min(11, archetypeIndex))}_${normEdition}`;
+}
+
+export function parseRelicId(relicId: string): { archetypeIndex: number; edition: RelicEdition } | null {
+  if (!relicId.startsWith('RELIC_')) return null;
+  const parts = relicId.split('_');
+  if (parts.length < 3) return null;
+  const archetypeIndex = parseInt(parts[1], 10);
+  const edition = parts[2] as RelicEdition;
+  if (isNaN(archetypeIndex) || !RELIC_EDITIONS.includes(edition)) return null;
+  return { archetypeIndex, edition };
+}
+
+export function getCurrentMilestone(discoveredCount: number): {
+  current: RelicMilestone | null;
+  next: RelicMilestone | null;
+  progressPercent: number;
+} {
+  const current = RELIC_MILESTONES.slice().reverse().find(m => discoveredCount >= m.count) || null;
+  const next = RELIC_MILESTONES.find(m => discoveredCount < m.count) || null;
+  const progressPercent = Math.min(100, Math.round((discoveredCount / TOTAL_RELICS_COUNT) * 100));
+  return { current, next, progressPercent };
+}
+
+

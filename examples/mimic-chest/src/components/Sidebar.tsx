@@ -2,6 +2,19 @@ import { useState, useMemo } from 'react';
 import { formatUnits, parseUnits } from 'viem';
 import { sound } from '../lib/audio';
 import type { RoundStep } from '../lib/mimic';
+import {
+  TierVoidIcon,
+  TierSilverIcon,
+  TierGoldIcon,
+  TierDestinyIcon,
+  LightningIcon,
+  BgmIcon,
+  BgmOffIcon,
+  SoundIcon,
+  SoundOffIcon,
+  RulesBookIcon,
+  GrimoireIcon,
+} from './Icons';
 
 export function Sidebar({
   balance,
@@ -22,6 +35,7 @@ export function Sidebar({
   discoveredCount = 0,
   unlockedPillarsCount,
   totalUniqueSigils,
+  discoveredRelicsCount = 0,
   bgmActive,
   onToggleBgm,
 }: {
@@ -39,6 +53,7 @@ export function Sidebar({
   discoveredCount?: number;
   unlockedPillarsCount?: number;
   totalUniqueSigils?: number;
+  discoveredRelicsCount?: number;
   isDemoMode: boolean;
   onResetDemoBalance: () => void;
   maxAllowedWager?: bigint;
@@ -222,25 +237,25 @@ export function Sidebar({
         <span className="paytable-card-title">FATE CARDS</span>
         <div className="paytable-row">
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f87171' }}>
-            <span>💀</span> The Void (50%)
+            <TierVoidIcon size={14} /> The Void (50%)
           </span>
           <span className="paytable-mono-mult" style={{ color: '#ef4444' }}>0.00×</span>
         </div>
         <div className="paytable-row">
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#cbd5e1' }}>
-            <span>🥈</span> Silver Rune (30%)
+            <TierSilverIcon size={14} /> Silver Rune (30%)
           </span>
           <span className="paytable-mono-mult" style={{ color: '#cbd5e1' }}>1.20×</span>
         </div>
         <div className="paytable-row">
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fde047' }}>
-            <span>☀️</span> Golden Sun (16%)
+            <TierGoldIcon size={14} /> Golden Sun (16%)
           </span>
           <span className="paytable-mono-mult" style={{ color: '#f59e0b' }}>2.50×</span>
         </div>
         <div className="paytable-row">
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#d8b4fe' }}>
-            <span>🔮</span> Destiny (4%)
+            <TierDestinyIcon size={14} /> Destiny (4%)
           </span>
           <span className="paytable-mono-mult" style={{ color: '#c084fc' }}>5.00×</span>
         </div>
@@ -281,7 +296,7 @@ export function Sidebar({
           className={`btn-util ${fastMode ? 'active' : ''}`}
           title="Skip card flip animation for faster rounds"
         >
-          <span>⚡</span> Fast
+          <LightningIcon size={14} /> Fast
         </button>
 
         <button
@@ -290,7 +305,7 @@ export function Sidebar({
           className={`btn-util ${isBgmOn ? 'active' : ''}`}
           title="Toggle ambient dungeon music (BGM)"
         >
-          <span>{isBgmOn ? '🎵' : '🔇'}</span> Music
+          {isBgmOn ? <BgmIcon size={14} /> : <BgmOffIcon size={14} />} Music
         </button>
 
         <button
@@ -299,7 +314,7 @@ export function Sidebar({
           className={`btn-util ${soundEnabled ? 'active' : ''}`}
           title="Toggle game sound effects"
         >
-          <span>{soundEnabled ? '🔊' : '🔇'}</span> SFX
+          {soundEnabled ? <SoundIcon size={14} /> : <SoundOffIcon size={14} />} SFX
         </button>
 
         <button
@@ -308,7 +323,7 @@ export function Sidebar({
           className="btn-util"
           title="View card paytable, RTP rules, and VRF proof"
         >
-          <span>ℹ️</span> Rules
+          <RulesBookIcon size={14} /> Rules
         </button>
 
         <button
@@ -318,9 +333,9 @@ export function Sidebar({
             onOpenCollection();
           }}
           className="btn-util btn-util-album"
-          title={`View Codex & Channeled Archive (${unlockedPillarsCount ?? discoveredCount}/12 Pillars, ${totalUniqueSigils ?? discoveredCount} Sigils)`}
+          title={`Tarot Codex • ${discoveredRelicsCount} / 48 Arcana Relics Discovered (${unlockedPillarsCount ?? discoveredCount}/${totalUniqueSigils ?? 12} Pillars)`}
         >
-          <span>🔯</span> Codex ({unlockedPillarsCount ?? discoveredCount}/12)
+          <GrimoireIcon size={14} /> Codex ({discoveredRelicsCount}/48)
         </button>
       </div>
     </aside>

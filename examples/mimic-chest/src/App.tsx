@@ -23,8 +23,16 @@ import { PaytableModal } from './components/PaytableModal';
 import { VerifyModal } from './components/VerifyModal';
 import { CollectionModal } from './components/CollectionModal';
 import { WinOverlay } from './components/WinOverlay';
-import { computeUnlockedPillarsCount } from './lib/proceduralNames';
+import { computeUnlockedPillarsCount, getArchetypeIndexForCard, getRelicId } from './lib/proceduralNames';
 import { sound } from './lib/audio';
+import {
+  ArcanaEyeIcon,
+  LightningIcon,
+  BgmIcon,
+  BgmOffIcon,
+  WarningIcon,
+  CloseIcon,
+} from './components/Icons';
 
 export type { RoundStep };
 
@@ -131,6 +139,32 @@ function saveStoredCollection(collection: string[]) {
   }
 }
 
+const RELICS_STORAGE_KEY = 'mimic_arcana_relics';
+
+function loadStoredRelics(): string[] {
+  try {
+    const raw = localStorage.getItem(RELICS_STORAGE_KEY) ?? sessionStorage.getItem(RELICS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((id): id is string => typeof id === 'string');
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredRelics(relics: string[]) {
+  try {
+    const serialized = JSON.stringify(relics);
+    localStorage.setItem(RELICS_STORAGE_KEY, serialized);
+    sessionStorage.setItem(RELICS_STORAGE_KEY, serialized);
+  } catch (err) {
+    console.warn('[Mimic Dungeon] Failed to save relics to storage:', err);
+  }
+}
+
 export function App() {
   const { hostApi, snapshot, isDemoMode, resetDemoBalance } = useCasinoHost();
 
@@ -151,6 +185,24 @@ export function App() {
     const merged = Array.from(new Set([...stored, ...historyCardIds]));
     if (merged.length > stored.length) {
       saveStoredCollection(merged);
+    }
+    return merged;
+  });
+
+  // 48 Arcana Relics Discovery Tracker (12 Archetypes × 4 Editions)
+  const [discoveredRelicIds, setDiscoveredRelicIds] = useState<string[]>(() => {
+    const stored = loadStoredRelics();
+    const historyRelics = loadStoredHistory()
+      .map(h => {
+        const card = h.outcome.card ?? getCardForOutcome(h.outcome.tierIndex, h.outcome.roll, h.wager, h.outcome.randomness);
+        const archIdx = getArchetypeIndexForCard(card?.cardId, card?.tierIndex);
+        const edition = card?.edition || h.outcome.edition || 'standard';
+        return getRelicId(archIdx, edition);
+      })
+      .filter(Boolean);
+    const merged = Array.from(new Set([...stored, ...historyRelics]));
+    if (merged.length > stored.length) {
+      saveStoredRelics(merged);
     }
     return merged;
   });
@@ -206,6 +258,17 @@ export function App() {
         return next;
       });
     }
+
+    // Auto-collect into 48 Relics Tracker (Task 3.2)
+    const archIdx = getArchetypeIndexForCard(card?.cardId, card?.tierIndex);
+    const edition = card?.edition || outcome.edition || 'standard';
+    const relicId = getRelicId(archIdx, edition);
+    setDiscoveredRelicIds(prev => {
+      if (prev.includes(relicId)) return prev;
+      const next = [...prev, relicId];
+      saveStoredRelics(next);
+      return next;
+    });
 
     setHistory(prev => {
       const next: HistoryItem[] = [{ wager, outcome, sessionKey, sessionId, timestamp: Date.now() }, ...prev];
@@ -628,7 +691,7 @@ export function App() {
       <header className="mimic-header">
         <div className="header-left">
           <div className="logo-box">
-            <span>🔮</span>
+            <ArcanaEyeIcon size={22} className="logo-sigil-icon" />
           </div>
           <div className="header-titles">
             <h1 className="game-title">ARCANA FATE</h1>
@@ -646,7 +709,7 @@ export function App() {
               className={`header-btn-util header-btn-fast ${fastMode ? 'active' : ''}`}
               title="Toggle Fast Mode (skips card deal and reveal delay animations)"
             >
-              <span className="btn-icon">⚡</span>
+              <LightningIcon size={14} className="btn-icon" />
               <span className="btn-label">Fast: {fastMode ? 'ON' : 'OFF'}</span>
             </button>
 
@@ -657,7 +720,10 @@ export function App() {
               title="Procedural Web Audio Synthesizer (Dark Occult Drone & Mystic Arpeggios)"
             >
               <span className={`bgm-indicator-dot ${bgmActive ? 'pulsing' : ''}`} />
-              <span className="btn-label">{bgmActive ? '🎵 Mystic BGM: ON' : '🔇 Mystic BGM: OFF'}</span>
+              <span className="btn-icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                {bgmActive ? <BgmIcon size={14} /> : <BgmOffIcon size={14} />}
+              </span>
+              <span className="btn-label">BGM: {bgmActive ? 'ON' : 'OFF'}</span>
             </button>
           </div>
 
@@ -693,6 +759,7 @@ export function App() {
             discoveredCount={unlockedPillarsCount}
             unlockedPillarsCount={unlockedPillarsCount}
             totalUniqueSigils={totalUniqueSigils}
+            discoveredRelicsCount={discoveredRelicIds.length}
             isDemoMode={isDemoMode}
             onResetDemoBalance={resetDemoBalance}
             maxAllowedWager={maxAllowedWager}
@@ -703,13 +770,16 @@ export function App() {
           <div className={`mimic-stage-column ${isScreenShaking ? 'screen-shake' : ''}`}>
             {error && (
               <div className="error-banner">
-                <span>⚠️ {error}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <WarningIcon size={14} /> {error}
+                </span>
                 <button
                   type="button"
                   onClick={() => setError(null)}
                   className="btn-error-dismiss"
+                  title="Dismiss error"
                 >
-                  ✕
+                  <CloseIcon size={12} />
                 </button>
               </div>
             )}
@@ -750,6 +820,7 @@ export function App() {
         isOpen={collectionOpen}
         onClose={() => setCollectionOpen(false)}
         discoveredCardIds={discoveredCardIds}
+        discoveredRelicIds={discoveredRelicIds}
         history={history}
       />
 

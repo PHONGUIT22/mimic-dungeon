@@ -1,5 +1,6 @@
 import { formatUnits } from 'viem';
 import type { MimicOutcome } from '../lib/mimic';
+import { TierDestinyIcon, TierGoldIcon } from './Icons';
 
 export function WinOverlay({
   outcome,
@@ -23,9 +24,43 @@ export function WinOverlay({
   return (
     <div className="modal-backdrop">
       <div className={`win-overlay-card ${isLegendary ? 'win-card-legendary' : 'win-card-gold'}`}>
-        <span style={{ fontSize: '44px', marginBottom: '6px' }}>
-          {isLegendary ? '🔮' : '☀️'}
-        </span>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+          {isLegendary ? (
+            <div
+              style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: 'rgba(192, 132, 252, 0.15)',
+                border: '1.5px solid #c084fc',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#c084fc',
+                boxShadow: '0 0 24px rgba(192, 132, 252, 0.5)',
+              }}
+            >
+              <TierDestinyIcon size={38} />
+            </div>
+          ) : (
+            <div
+              style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: 'rgba(245, 158, 11, 0.15)',
+                border: '1.5px solid #f59e0b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#f59e0b',
+                boxShadow: '0 0 24px rgba(245, 158, 11, 0.5)',
+              }}
+            >
+              <TierGoldIcon size={38} />
+            </div>
+          )}
+        </div>
 
         <span
           style={{

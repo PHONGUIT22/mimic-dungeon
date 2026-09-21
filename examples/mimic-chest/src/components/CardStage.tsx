@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   type MimicOutcome,
   type DisplayCard,
@@ -86,11 +86,49 @@ export function CardStage({
   const [isTallyDone, setIsTallyDone] = useState(false);
   const [editionTriggered, setEditionTriggered] = useState(false);
 
-  // Mouse 3D Parallax tilt tracking
-  const [tilt, setTilt] = useState<{ index: number | null; rx: number; ry: number }>({
+  // Dark Oracle Prophecies for Altar Foot (Task 3.1 - Rotates every 12s)
+  const ALTAR_FOOT_PROPHECIES = useMemo(
+    () => [
+      'The stars align in solar gold tonight...',
+      'Beware the thirteenth seal; the Void hungers...',
+      'Destiny smiles upon those who dare the third card...',
+      'Silver threads weave through the shadows of the altar...',
+      'The ancient unmaker slumbers, waiting for the bold...',
+      'The celestial wheel turns eternal; fortune favors the resolute...',
+      'A single spark of ether can awaken the sleeping vault...',
+      'Listen closely: the cards whisper secrets only the daring hear...',
+    ],
+    [],
+  );
+  const [altarOracleIdx, setAltarOracleIdx] = useState(0);
+  const [altarOracleFade, setAltarOracleFade] = useState(true);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setAltarOracleFade(false);
+      setTimeout(() => {
+        setAltarOracleIdx(prev => (prev + 1) % ALTAR_FOOT_PROPHECIES.length);
+        setAltarOracleFade(true);
+      }, 450);
+    }, 12000);
+    return () => clearInterval(timer);
+  }, [ALTAR_FOOT_PROPHECIES.length]);
+
+  // Mouse 3D Parallax tilt tracking & Dynamic Balatro Foil cursor reflection
+  const [tilt, setTilt] = useState<{
+    index: number | null;
+    rx: number;
+    ry: number;
+    angle: number;
+    posX: number;
+    posY: number;
+  }>({
     index: null,
     rx: 0,
     ry: 0,
+    angle: 115,
+    posX: 50,
+    posY: 50,
   });
 
   // Audio chime trigger on streak progression (Rune Resonance)
@@ -317,14 +355,14 @@ export function CardStage({
     setCards(newCards);
     setSelectedIdx(activeIdx);
 
-    // STEP A: Slow Peek / Squeeze Suspense Phase (~440ms)
+    // STEP A: Slow Peek / Squeeze Suspense Phase (~400ms window as per Task 2.1)
     // The selected card lifts, edges seep tier-specific aura glow, with an escalating rising-pitch tension synth!
     setSpreadState('squeezing');
     setSqueezingTier(outcome.tierIndex);
     sound.playCardSqueeze(outcome.tierIndex);
 
     const timers: Array<ReturnType<typeof setTimeout>> = [];
-    const squeezeDuration = fastMode ? 80 : 440;
+    const squeezeDuration = fastMode ? 80 : 400;
 
     const squeezeTimer = setTimeout(() => {
       setSqueezingTier(null);
@@ -371,7 +409,7 @@ export function CardStage({
         }, fastMode ? 100 : 220);
         timers.push(editionTimer);
 
-        // Scoring tally for winning outcomes
+        // Scoring tally for winning outcomes with streak pitch overdrive
         if (outcome.won && outcome.multiplier > 0) {
           setTallyMultiplier(1.0);
           setIsTallying(true);
@@ -389,6 +427,7 @@ export function CardStage({
             },
             fastMode,
             1.0,
+            streak >= 3 ? 4 : streak === 2 ? 2 : 0,
           );
         } else {
           setTallyMultiplier(0);
@@ -433,6 +472,7 @@ export function CardStage({
             },
             fastMode,
             1.0,
+            streak >= 3 ? 4 : streak === 2 ? 2 : 0,
           );
         } else {
           setTallyMultiplier(0);
@@ -494,24 +534,27 @@ export function CardStage({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mouse Move Parallax Tilt Handler (Desktop)
+  // Mouse Move Parallax Tilt Handler (Desktop) & Dynamic Balatro Foil Reflection
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>, cardIndex: number) => {
-    if (spreadState !== 'awaiting_pick') return;
+    if (spreadState === 'dealing' || spreadState === 'squeezing') return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
     const y = e.clientY - rect.top - rect.height / 2;
     const rx = -(y / (rect.height / 2)) * 14;
     const ry = (x / (rect.width / 2)) * 14;
-    setTilt({ index: cardIndex, rx, ry });
+    const angle = Math.round((Math.atan2(y, x) * 180) / Math.PI + 90);
+    const posX = Math.round(50 + (x / rect.width) * 50);
+    const posY = Math.round(50 + (y / rect.height) * 50);
+    setTilt({ index: cardIndex, rx, ry, angle, posX, posY });
   };
 
   const handleMouseLeave = () => {
-    setTilt({ index: null, rx: 0, ry: 0 });
+    setTilt({ index: null, rx: 0, ry: 0, angle: 115, posX: 50, posY: 50 });
   };
 
   // Touch Move Parallax Tilt Handler (Mobile)
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>, cardIndex: number) => {
-    if (spreadState !== 'awaiting_pick') return;
+    if (spreadState === 'dealing' || spreadState === 'squeezing') return;
     const touch = e.touches[0];
     if (!touch) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -519,11 +562,14 @@ export function CardStage({
     const y = touch.clientY - rect.top - rect.height / 2;
     const rx = -(y / (rect.height / 2)) * 14;
     const ry = (x / (rect.width / 2)) * 14;
-    setTilt({ index: cardIndex, rx, ry });
+    const angle = Math.round((Math.atan2(y, x) * 180) / Math.PI + 90);
+    const posX = Math.round(50 + (x / rect.width) * 50);
+    const posY = Math.round(50 + (y / rect.height) * 50);
+    setTilt({ index: cardIndex, rx, ry, angle, posX, posY });
   };
 
   const handleTouchEnd = () => {
-    setTilt({ index: null, rx: 0, ry: 0 });
+    setTilt({ index: null, rx: 0, ry: 0, angle: 115, posX: 50, posY: 50 });
   };
 
   // Outcome banner styling
@@ -649,7 +695,7 @@ export function CardStage({
                 ? 'rotateY(180deg) scale(1.04)'
                 : 'rotateY(180deg) scale(0.96)';
             } else if (isSqueezing) {
-              transformStyle = 'translateY(-24px) scale(1.10)';
+              transformStyle = 'translateY(-24px) scale(1.08)';
             } else if (isOtherSqueezing) {
               transformStyle = 'translateY(6px) scale(0.93)';
             } else if (isTilted && isAwaiting) {
@@ -684,6 +730,13 @@ export function CardStage({
                   style={{
                     transform: transformStyle || undefined,
                     animationDelay: `${slotIndex * 110}ms`,
+                    ...(isTilted
+                      ? ({
+                          '--foil-angle': `${tilt.angle}deg`,
+                          '--foil-pos-x': `${tilt.posX}%`,
+                          '--foil-pos-y': `${tilt.posY}%`,
+                        } as React.CSSProperties)
+                      : {}),
                   }}
                 >
                   {/* CARD BACK (MẶT LƯNG: VÒNG TRÒN MA THUẬT VÀNG CỔ) */}
@@ -860,7 +913,7 @@ export function CardStage({
                   ? '✦ GOLDEN FLAME PEEKING... ✦'
                   : squeezingTier === 1
                     ? '✧ SILVER ESSENCE RISING... ✧'
-                    : '☠ VOID CORRUPTION SENSING... ☠'}
+                    : '◈ VOID CORRUPTION SENSING... ◈'}
             </div>
           )}
 
@@ -904,6 +957,15 @@ export function CardStage({
           {spreadState === 'idle' && (
             <div className="idle-text">Set your wager and click Draw Card to begin</div>
           )}
+        </div>
+
+        {/* ALTAR FOOT ORACLE PROPHECIES (Atmospheric rotating micro-copy every 12s) */}
+        <div className="altar-foot-whisper-container">
+          <div className={`altar-foot-whisper ${altarOracleFade ? 'visible' : 'hidden'}`}>
+            <span className="altar-whisper-glyph">◈</span>
+            <span className="altar-whisper-text">{ALTAR_FOOT_PROPHECIES[altarOracleIdx]}</span>
+            <span className="altar-whisper-glyph">◈</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1056,7 +1118,7 @@ export function RuneResonanceCircle({
         {streak === 0 && '✦ PENTAGRAM SIGIL CIRCLE • DORMANT ✦'}
         {streak === 1 && '✧ SEAL I RESONATING • 1X RESONANCE ✧'}
         {streak === 2 && '✦ SEAL II BLAZING • 2X RESONANCE ✦'}
-        {streak >= 3 && `⚡ FATE SURGE ACTIVE • ${streak}X RESONANCE OVERDRIVE ⚡`}
+        {streak >= 3 && `◈ FATE SURGE ACTIVE • ${streak}X RESONANCE OVERDRIVE ◈`}
       </div>
     </div>
   );

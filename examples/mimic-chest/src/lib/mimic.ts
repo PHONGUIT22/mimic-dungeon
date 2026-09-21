@@ -789,4 +789,3 @@ export function getDarkOracleQuote(tierIndex: number, seed?: number | string): s
   }
   return quotes[numSeed % quotes.length];
 }
-

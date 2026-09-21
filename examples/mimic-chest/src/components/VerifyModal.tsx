@@ -1,6 +1,16 @@
 import { useState, useCallback } from 'react';
 import { formatUnits } from 'viem';
 import { type HistoryItem, PAYTABLE, getCardForOutcome } from '../lib/mimic';
+import {
+  ShieldIcon,
+  CloseIcon,
+  CheckIcon,
+  CopyIcon,
+  TierVoidIcon,
+  TierSilverIcon,
+  TierGoldIcon,
+  TierDestinyIcon,
+} from './Icons';
 
 export interface VerifyModalProps {
   isOpen: boolean;
@@ -82,7 +92,7 @@ export function VerifyModal({
         {/* Modal Header */}
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '18px' }}>🛡️</span>
+            <ShieldIcon size={20} style={{ color: '#38bdf8' }} />
             <div>
               <h2
                 className="font-heading"
@@ -96,7 +106,7 @@ export function VerifyModal({
             </div>
           </div>
           <button onClick={onClose} className="modal-close-btn" title="Close">
-            ✕
+            <CloseIcon size={14} />
           </button>
         </div>
 
@@ -109,8 +119,8 @@ export function VerifyModal({
               padding: '12px 14px',
               borderRadius: '6px',
               background: 'var(--bg-inset)',
-              border: '1px solid var(--border-medium)',
-              borderLeft: `4px solid ${tierInfo.color}`,
+              border: `1px solid ${tierInfo.color}45`,
+              boxShadow: `0 0 12px ${tierInfo.color}15`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -124,15 +134,23 @@ export function VerifyModal({
                   height: '36px',
                   borderRadius: '6px',
                   background: '#1a2230',
-                  border: `1px solid ${tierInfo.color}`,
+                  border: `1px solid ${tierInfo.color}60`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '18px',
+                  color: tierInfo.color,
                   flexShrink: 0,
                 }}
               >
-                {outcome.tierIndex === 3 ? '🔮' : outcome.tierIndex === 2 ? '☀️' : outcome.tierIndex === 1 ? '🥈' : '💀'}
+                {outcome.tierIndex === 3 ? (
+                  <TierDestinyIcon size={20} />
+                ) : outcome.tierIndex === 2 ? (
+                  <TierGoldIcon size={20} />
+                ) : outcome.tierIndex === 1 ? (
+                  <TierSilverIcon size={20} />
+                ) : (
+                  <TierVoidIcon size={20} />
+                )}
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -269,6 +287,9 @@ export function VerifyModal({
                 onClick={handleCopySeed}
                 className="btn-copy"
                 style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
                   padding: '3px 8px',
                   borderRadius: '3px',
                   background: copiedSeed ? 'var(--accent-success)' : '#212b39',
@@ -282,7 +303,15 @@ export function VerifyModal({
                   transition: 'all 0.15s',
                 }}
               >
-                {copiedSeed ? '✓ COPIED' : 'COPY'}
+                {copiedSeed ? (
+                  <>
+                    <CheckIcon size={10} /> COPIED
+                  </>
+                ) : (
+                  <>
+                    <CopyIcon size={10} /> COPY
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -301,7 +330,7 @@ export function VerifyModal({
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontFamily: 'monospace', fontSize: '10px', fontWeight: 800, color: '#a5b4fc' }}>
+                <span style={{ fontFamily: 'monospace', fontSize: '10px', fontWeight: 800, color: 'var(--accent-tech)' }}>
                   REJECTION SAMPLING PROOF
                 </span>
                 <span
@@ -368,15 +397,18 @@ export function VerifyModal({
                       {isMatched && (
                         <span
                           style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
                             color: 'var(--accent-action)',
                             fontWeight: 900,
                             fontSize: '9px',
-                            padding: '0 4px',
+                            padding: '1px 5px',
                             background: 'rgba(0, 231, 1, 0.15)',
                             borderRadius: '2px',
                           }}
                         >
-                          ✓ MATCH
+                          <CheckIcon size={10} /> MATCH
                         </span>
                       )}
                     </div>
@@ -414,6 +446,9 @@ export function VerifyModal({
                 type="button"
                 onClick={handleCopySession}
                 style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
                   padding: '2px 6px',
                   borderRadius: '2px',
                   background: copiedSession ? 'var(--accent-success)' : '#212b39',
@@ -424,7 +459,7 @@ export function VerifyModal({
                   flexShrink: 0,
                 }}
               >
-                {copiedSession ? '✓' : 'Copy'}
+                {copiedSession ? <CheckIcon size={10} /> : <CopyIcon size={10} />}
               </button>
             </div>
           )}

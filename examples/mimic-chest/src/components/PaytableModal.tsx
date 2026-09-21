@@ -1,4 +1,12 @@
 import { PAYTABLE } from '../lib/mimic';
+import {
+  ArcanaEyeIcon,
+  CloseIcon,
+  TierVoidIcon,
+  TierSilverIcon,
+  TierGoldIcon,
+  TierDestinyIcon,
+} from './Icons';
 
 export function PaytableModal({
   isOpen,
@@ -14,13 +22,13 @@ export function PaytableModal({
       <div className="modal-card" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '20px' }}>🔮</span>
+            <ArcanaEyeIcon size={20} style={{ color: 'var(--accent-gold)' }} />
             <h2 className="font-heading" style={{ fontSize: '18px', fontWeight: 800, color: '#fff' }}>
               Arcana Fate: Paytable & Rules
             </h2>
           </div>
-          <button onClick={onClose} className="modal-close-btn">
-            ✕
+          <button onClick={onClose} className="modal-close-btn" title="Close">
+            <CloseIcon size={14} />
           </button>
         </div>
 
@@ -29,7 +37,7 @@ export function PaytableModal({
             In <strong style={{ color: '#fff' }}>Arcana Fate</strong>, each round draws a mystical fate card resolved instantly on-chain using 32-byte VRF randomness with cryptographic <strong>Rejection Sampling</strong> to guarantee 100% uniform distributions and zero modulo bias.
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {PAYTABLE.map(tier => (
               <div
                 key={tier.tier}
@@ -37,30 +45,50 @@ export function PaytableModal({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '8px 12px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-subtle)',
-                  borderLeft: `3px solid ${tier.color}`,
+                  padding: '10px 14px',
+                  borderRadius: '6px',
+                  border: `1px solid ${tier.color}40`,
                   background: 'var(--bg-inset)',
+                  boxShadow: `0 0 12px ${tier.color}15`,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>
-                    {tier.tierIndex === 3 ? '🔮' : tier.tierIndex === 2 ? '☀️' : tier.tierIndex === 1 ? '🥈' : '💀'}
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '4px',
+                      background: 'rgba(0, 0, 0, 0.4)',
+                      border: `1px solid ${tier.color}50`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: tier.color,
+                    }}
+                  >
+                    {tier.tierIndex === 3 ? (
+                      <TierDestinyIcon size={16} />
+                    ) : tier.tierIndex === 2 ? (
+                      <TierGoldIcon size={16} />
+                    ) : tier.tierIndex === 1 ? (
+                      <TierSilverIcon size={16} />
+                    ) : (
+                      <TierVoidIcon size={16} />
+                    )}
+                  </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span className="font-heading" style={{ fontSize: '12px', fontWeight: 800, color: '#fff' }}>
+                    <span className="font-heading" style={{ fontSize: '13px', fontWeight: 800, color: '#fff' }}>
                       {tier.name}
                     </span>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{tier.description}</span>
+                    <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>{tier.description}</span>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: '14px', fontWeight: 800, color: '#fff' }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: '15px', fontWeight: 800, color: tier.color }}>
                     {tier.multiplierText}
                   </span>
-                  <span style={{ fontFamily: 'monospace', fontSize: '10px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: '10.5px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                     {tier.probabilityText}
                   </span>
                 </div>
@@ -70,13 +98,13 @@ export function PaytableModal({
 
           <div
             style={{
-              borderRadius: '4px',
+              borderRadius: '6px',
               border: '1px solid var(--border-subtle)',
               background: 'var(--bg-inset)',
-              padding: '10px 12px',
+              padding: '10px 14px',
             }}
           >
-            <h3 style={{ fontFamily: 'monospace', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: '#a5b4fc' }}>
+            <h3 style={{ fontFamily: 'monospace', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--accent-gold)' }}>
               Theoretical RTP Formula:
             </h3>
             <p style={{ marginTop: '4px', fontFamily: 'monospace', fontSize: '11px', color: '#94a3b8' }}>
@@ -89,10 +117,10 @@ export function PaytableModal({
 
           <div
             style={{
-              borderRadius: '4px',
+              borderRadius: '6px',
               border: '1px solid var(--border-subtle)',
               background: 'var(--bg-inset)',
-              padding: '8px 10px',
+              padding: '10px 14px',
               fontSize: '11px',
               color: 'var(--text-muted)',
             }}
@@ -108,7 +136,7 @@ export function PaytableModal({
               borderRadius: '4px',
               background: '#212b39',
               border: '1px solid var(--border-medium)',
-              padding: '8px 16px',
+              padding: '8px 18px',
               fontFamily: 'Rubik, sans-serif',
               fontSize: '12px',
               fontWeight: 700,

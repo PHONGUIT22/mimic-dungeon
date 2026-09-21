@@ -1085,14 +1085,15 @@ class SoundManager {
    * Mechanical clicker chime whose frequency scales up by +1 semitone per step:
    * baseFreq * Math.pow(2, step / 12). NO ducking!
    */
-  public playTallyStep(step: number = 0) {
+  public playTallyStep(step: number = 0, semitoneOffset: number = 0) {
     if (!this.sfxEnabled) return;
     this.initContext();
     if (!this.ctx) return;
 
     const now = this.ctx.currentTime;
     const baseFreq = 440; // A4
-    const freq = baseFreq * Math.pow(2, step / 12);
+    const effectiveStep = step + semitoneOffset;
+    const freq = baseFreq * Math.pow(2, effectiveStep / 12);
 
     // 1. Clicker transient (mechanical snap)
     const noiseBuffer = this.getNoiseBuffer();
@@ -1102,7 +1103,7 @@ class SoundManager {
 
       const clickFilter = this.ctx.createBiquadFilter();
       clickFilter.type = 'bandpass';
-      clickFilter.frequency.setValueAtTime(3200, now);
+      clickFilter.frequency.setValueAtTime(3200 + semitoneOffset * 120, now);
       clickFilter.Q.setValueAtTime(2.2, now);
 
       const clickGain = this.ctx.createGain();
@@ -1139,12 +1140,14 @@ class SoundManager {
 
   /**
    * Balatro-style multiplier counting score sequence with semitone progression. NO ducking!
+   * Supports streak pitch boost during Rune Resonance Fate Surge Overdrive.
    */
   public playPitchShiftTally(
     toMultiplier: number,
     onStep?: (stepIndex: number, currentMult: number, isFinal: boolean) => void,
     fastMode: boolean = false,
     fromMultiplier: number = 1.0,
+    semitoneOffset: number = 0,
   ) {
     const startVal = Math.max(0, fromMultiplier);
     const endVal = Math.max(0, toMultiplier);
@@ -1175,7 +1178,7 @@ class SoundManager {
 
       setTimeout(() => {
         onStep?.(i, Math.round(currentMult * 100) / 100, isFinal);
-        this.playTallyStep(i);
+        this.playTallyStep(i, semitoneOffset);
 
         // On final step for big wins (>= 2.5x), add a golden shimmer overtone
         if (isFinal && endVal >= 2.5 && this.ctx) {
