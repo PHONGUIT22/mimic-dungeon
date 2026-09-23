@@ -352,7 +352,8 @@ export function generateMysticCard(seed: number | string, tier: TierInput): Myst
   const core = meta.cores[coreIdx];
   const suffix = meta.suffixes[suffixIdx];
 
-  const name = `${prefix} ${core} ${suffix}`;
+  // Concise 2-word fantasy title (e.g. 'Hollow Abyss', 'Mythic Weaver', 'Ethereal Spirit')
+  const name = `${prefix} ${core}`;
   const id = `SIGIL_${meta.tier}_${prefix.toUpperCase()}_${core.toUpperCase()}_${numSeed % 10000}`;
 
   const romanIdx = (numSeed + tierIndex * 5) % meta.romans.length;

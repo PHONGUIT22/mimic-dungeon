@@ -25,10 +25,10 @@
   --text-muted: #5a6b82;
 
   /* Strict Utility Accent Colors (Utility Only) */
-  --accent-action: #00e701;         /* Stake Signature Chartreuse Green */
-  --accent-action-hover: #1aff1a;
-  --accent-action-active: #00c901;
-  --accent-action-text: #051405;
+  --accent-action: #f59e0b;         /* Radiant Occult Gold */
+  --accent-action-hover: #fbbf24;
+  --accent-action-active: #d97706;
+  --accent-action-text: #1a0f02;
 
   --accent-tech: #38bdf8;           /* Blue/Cyan for VRF & Cryptographic specs */
   --accent-rtp: #818cf8;            /* Indigo for Math RTP */
@@ -553,43 +553,80 @@ h1, h2, h3, h4, .font-heading {
 }
 
 /* ==========================================================================
-   PRIMARY ACTION BUTTON (STAKE SIGNATURE HIGH-CONTRAST BLOCK)
-   Solid flat chartreuse green block that shifts flatly on hover/active
+   PRIMARY ACTION BUTTON (GILDED OCCULT GOLD & AMETHYST AURA)
+   Regal gold-amber foil gradient with subtle violet glow and light sweep
    ========================================================================== */
 
 .btn-open-chest {
   width: 100%;
-  height: 48px;
-  border-radius: 4px;
-  background: var(--accent-action);
-  border: none;
-  color: var(--accent-action-text);
+  height: 50px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #b45309 0%, #d97706 20%, #f59e0b 55%, #fbbf24 85%, #d97706 100%);
+  background-size: 200% 200%;
+  border: 1.5px solid #fde047;
+  color: #1a0f02;
   font-family: 'Rubik', sans-serif;
   font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
+  font-weight: 900;
+  letter-spacing: 1px;
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: none;
-  transition: background 0.12s ease, transform 0.08s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 4px 20px rgba(245, 158, 11, 0.35),
+    0 0 12px rgba(168, 85, 247, 0.25),
+    inset 0 1px 2px rgba(255, 255, 255, 0.75),
+    inset 0 -2px 6px rgba(120, 53, 15, 0.6);
+  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, filter 0.2s ease, background-position 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-open-chest::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 70%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  transform: skewX(-25deg);
+  transition: left 0.65s ease;
+  pointer-events: none;
+}
+
+.btn-open-chest:hover:not(:disabled)::before {
+  left: 150%;
 }
 
 .btn-open-chest:hover:not(:disabled) {
-  background: var(--accent-action-hover);
-  box-shadow: none;
+  background-position: 100% 50%;
+  box-shadow: 
+    0 6px 26px rgba(245, 158, 11, 0.6),
+    0 0 20px rgba(192, 132, 252, 0.45),
+    inset 0 1px 2px rgba(255, 255, 255, 0.9),
+    inset 0 -2px 6px rgba(120, 53, 15, 0.6);
+  transform: translateY(-2px);
+  filter: brightness(1.06);
 }
 
 .btn-open-chest:active:not(:disabled) {
-  background: var(--accent-action-active);
   transform: translateY(1px);
+  box-shadow: 
+    0 2px 10px rgba(245, 158, 11, 0.4),
+    inset 0 2px 4px rgba(120, 53, 15, 0.8);
 }
 
 .btn-open-chest:disabled {
-  background: #242f3d;
-  color: #5a6b82;
+  background: #18202c;
+  border: 1px solid #283649;
+  color: #4c5d73;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
+  filter: none;
 }
 
 /* Utility Bar (4-Column Compact Grid) */
@@ -1560,7 +1597,10 @@ h1, h2, h3, h4, .font-heading {
   -webkit-backface-visibility: hidden !important;
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 2px 10px rgba(0, 0, 0, 0.4);
+  box-shadow: 
+    0 22px 50px rgba(0, 0, 0, 0.88),
+    0 8px 20px rgba(0, 0, 0, 0.65),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
   overflow: hidden;
   user-select: none;
 }
@@ -2402,17 +2442,17 @@ h1, h2, h3, h4, .font-heading {
   background: linear-gradient(135deg, rgba(245, 208, 254, 0.9) 0%, rgba(88, 28, 135, 0.85) 50%, rgba(216, 180, 254, 0.75) 100%);
 }
 
-/* Vintage Parchment / Ivory Art Inlay Plate */
+/* Ancient Mystical Grimoire / Dark Parchment Art Inlay Plate */
 .tcg-parchment-plate {
   width: 100%;
   height: 100%;
   position: relative;
   clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
-  background: linear-gradient(180deg, #fcf9ee 0%, #f6eedb 35%, #ebdcc4 75%, #dfcdae 100%);
-  border: 1px solid rgba(139, 94, 60, 0.45);
+  background: radial-gradient(ellipse at 50% 45%, #23192f 0%, #160e20 65%, #0c0712 100%);
+  border: 1px solid rgba(217, 119, 6, 0.45);
   box-shadow: 
-    inset 0 0 16px rgba(120, 53, 15, 0.18),
-    inset 0 1px 3px rgba(255, 255, 255, 0.85);
+    inset 0 0 24px rgba(0, 0, 0, 0.85),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
   padding: 8px 8px 7px 8px;
   box-sizing: border-box;
   display: flex;
@@ -2420,6 +2460,63 @@ h1, h2, h3, h4, .font-heading {
   justify-content: space-between;
   gap: 6px;
   overflow: hidden;
+}
+
+/* Tier-specific enriched plate depths */
+.tcg-frame-tier-0 .tcg-parchment-plate {
+  background: radial-gradient(ellipse at 50% 45%, #251235 0%, #150a20 65%, #0a0310 100%);
+  border-color: rgba(147, 51, 234, 0.45);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.9), inset 0 0 14px rgba(239, 68, 68, 0.25);
+}
+
+.tcg-frame-tier-1 .tcg-parchment-plate {
+  background: radial-gradient(ellipse at 50% 45%, #1e2b3c 0%, #111a26 65%, #080d14 100%);
+  border-color: rgba(148, 163, 184, 0.5);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.9), inset 0 0 14px rgba(56, 189, 248, 0.25);
+}
+
+.tcg-frame-tier-2 .tcg-parchment-plate {
+  background: radial-gradient(ellipse at 50% 45%, #33210b 0%, #1c1104 65%, #0d0701 100%);
+  border-color: rgba(245, 158, 11, 0.55);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.9), inset 0 0 16px rgba(245, 158, 11, 0.3);
+}
+
+.tcg-frame-tier-3 .tcg-parchment-plate {
+  background: radial-gradient(ellipse at 50% 45%, #34104c 0%, #190529 65%, #0c0116 100%);
+  border-color: rgba(216, 180, 254, 0.65);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.95), inset 0 0 20px rgba(232, 121, 249, 0.4);
+}
+
+/* Antique Plate Corner Filigrees */
+.card-plate-corner {
+  position: absolute;
+  font-size: 8px;
+  color: rgba(245, 158, 11, 0.45);
+  line-height: 1;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.plate-corner-tl { top: 3px; left: 4px; }
+.plate-corner-tr { top: 3px; right: 4px; }
+.plate-corner-bl { bottom: 3px; left: 4px; }
+.plate-corner-br { bottom: 3px; right: 4px; }
+
+/* Dynamic Mouse-tracking Specular Glare Sheen */
+.card-specular-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: radial-gradient(
+    circle at var(--foil-pos-x, 50%) var(--foil-pos-y, 50%),
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.08) 28%,
+    transparent 65%
+  );
+  pointer-events: none;
+  z-index: 5;
+  mix-blend-mode: overlay;
+  transition: opacity 0.2s ease;
 }
 
 /* Top RPG Header Bar */
@@ -2585,45 +2682,50 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .tcg-banner-main {
-  background: linear-gradient(180deg, #241b2a 0%, #120b17 100%);
-  border: 1.5px solid #b45309;
+  background: linear-gradient(180deg, #1c1424 0%, #0d0714 100%);
+  border: 1.5px solid rgba(217, 119, 6, 0.65);
   border-radius: 6px;
-  padding: 6px 10px;
+  padding: 4px 7px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 5px;
   box-shadow: 
-    0 4px 10px rgba(0, 0, 0, 0.65),
-    inset 0 1px 2px rgba(245, 158, 11, 0.3);
+    0 4px 12px rgba(0, 0, 0, 0.75),
+    inset 0 1px 2px rgba(245, 158, 11, 0.25);
+  min-height: 36px;
 }
 
 .tcg-card-title {
   font-family: 'MedievalSharp', cursive, serif;
-  font-size: 13.5px;
+  font-size: clamp(10.5px, 1.25vw, 12px);
   font-weight: 700;
   color: #fef3c7;
-  line-height: 1.2;
-  white-space: nowrap;
+  line-height: 1.15;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  word-break: normal;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
   flex: 1;
   min-width: 0;
   text-align: left;
 }
 
-/* Large Prominent Multiplier Pill */
+/* Compact, High-Impact Multiplier Shield */
 .tcg-multiplier-shield {
-  min-width: 60px;
-  height: 34px;
-  border-radius: 6px;
+  min-width: 48px;
+  height: 28px;
+  border-radius: 5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 8px;
+  padding: 0 6px;
   font-family: 'Rubik', monospace;
-  font-size: 1.22rem;
+  font-size: 1.05rem;
   font-weight: 900;
   letter-spacing: 0.5px;
   flex-shrink: 0;
@@ -3053,37 +3155,147 @@ h1, h2, h3, h4, .font-heading {
   min-height: 48px;
 }
 
-/* Technical flat outcome banner with subtle tier glowing borders (Rule 5 Compliant) */
+/* ==========================================================================
+   FEATURE 5: OUTCOME BADGES & EXPLOSIVE JACKPOT CELEBRATION
+   ========================================================================== */
+
+/* Full Stage Cosmic Flare on Jackpot Settling */
+.jackpot-stage-flash {
+  position: absolute;
+  inset: -60px;
+  background: radial-gradient(circle at 50% 50%, rgba(254, 240, 138, 0.75) 0%, rgba(232, 121, 249, 0.55) 40%, rgba(147, 51, 234, 0.35) 70%, transparent 95%);
+  pointer-events: none;
+  z-index: 18;
+  animation: jackpotScreenFlash 1.2s ease-out forwards;
+}
+
+@keyframes jackpotScreenFlash {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.85);
+  }
+  30% {
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.2);
+  }
+}
+
+/* Rotating Cosmic Rays behind table on Jackpot */
+.jackpot-cosmic-rays {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 520px;
+  height: 520px;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 0deg,
+    rgba(245, 158, 11, 0.25) 0deg 20deg,
+    transparent 20deg 40deg,
+    rgba(232, 121, 249, 0.25) 40deg 60deg,
+    transparent 60deg 80deg,
+    rgba(245, 158, 11, 0.25) 80deg 100deg,
+    transparent 100deg 120deg,
+    rgba(232, 121, 249, 0.25) 120deg 140deg,
+    transparent 140deg 160deg,
+    rgba(245, 158, 11, 0.25) 160deg 180deg,
+    transparent 180deg 200deg,
+    rgba(232, 121, 249, 0.25) 200deg 220deg,
+    transparent 220deg 240deg,
+    rgba(245, 158, 11, 0.25) 240deg 260deg,
+    transparent 260deg 280deg,
+    rgba(232, 121, 249, 0.25) 280deg 300deg,
+    transparent 300deg 320deg,
+    rgba(245, 158, 11, 0.25) 320deg 340deg,
+    transparent 340deg 360deg
+  );
+  border-radius: 50%;
+  filter: blur(12px);
+  pointer-events: none;
+  z-index: 2;
+  animation: cosmicRaysSpin 20s linear infinite, cosmicRaysPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes cosmicRaysSpin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes cosmicRaysPulse {
+  0% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.92); }
+  100% { opacity: 0.95; transform: translate(-50%, -50%) scale(1.08); }
+}
+
+/* Technical outcome banner with tier-specific glowing aesthetics */
 .outcome-badge {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 20px;
-  border-radius: 6px;
+  padding: 8px 22px;
+  border-radius: 8px;
   background: var(--bg-inset);
   border: 1px solid var(--border-subtle);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   animation: outcomeSlide 0.25s ease-out forwards;
+  position: relative;
+  z-index: 10;
 }
 
 .outcome-badge-mimic {
-  border-color: rgba(239, 68, 68, 0.45);
-  box-shadow: 0 0 16px rgba(239, 68, 68, 0.15), inset 0 1px 0 rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.2), inset 0 1px 0 rgba(239, 68, 68, 0.3);
 }
 
 .outcome-badge-silver {
-  border-color: rgba(148, 163, 184, 0.45);
-  box-shadow: 0 0 16px rgba(148, 163, 184, 0.15), inset 0 1px 0 rgba(226, 232, 240, 0.3);
+  border-color: rgba(148, 163, 184, 0.5);
+  box-shadow: 0 0 16px rgba(148, 163, 184, 0.2), inset 0 1px 0 rgba(226, 232, 240, 0.3);
 }
 
 .outcome-badge-gold {
-  border-color: rgba(245, 158, 11, 0.45);
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(253, 224, 71, 0.35);
+  border-color: rgba(245, 158, 11, 0.65);
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.35), inset 0 1px 0 rgba(253, 224, 71, 0.4);
 }
 
-.outcome-badge-legendary {
-  border-color: rgba(192, 132, 252, 0.5);
-  box-shadow: 0 0 24px rgba(192, 132, 252, 0.25), inset 0 1px 0 rgba(245, 208, 254, 0.4);
+.outcome-badge-legendary,
+.outcome-badge.is-jackpot-badge {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, rgba(38, 10, 56, 0.95) 0%, rgba(15, 4, 25, 0.98) 100%);
+  border: 2px solid #e879f9;
+  border-radius: 10px;
+  box-shadow: 
+    0 0 32px rgba(232, 121, 249, 0.75),
+    0 0 65px rgba(245, 158, 11, 0.5),
+    inset 0 0 20px rgba(232, 121, 249, 0.4);
+  animation: jackpotBadgeImpact 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards, jackpotBadgePulse 1.8s ease-in-out infinite alternate;
+  z-index: 20;
+}
+
+@keyframes jackpotBadgeImpact {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes jackpotBadgePulse {
+  0% {
+    box-shadow: 0 0 28px rgba(232, 121, 249, 0.7), 0 0 50px rgba(245, 158, 11, 0.4), inset 0 0 16px rgba(232, 121, 249, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 45px rgba(232, 121, 249, 0.95), 0 0 85px rgba(245, 158, 11, 0.75), inset 0 0 28px rgba(245, 208, 254, 0.6);
+  }
 }
 
 /* ==========================================================================
@@ -3150,6 +3362,35 @@ h1, h2, h3, h4, .font-heading {
   font-size: 20px;
   font-weight: 900;
   color: #ffffff;
+}
+
+.badge-multiplier.jackpot-text-burst {
+  font-family: 'Rubik', sans-serif;
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  background: linear-gradient(90deg, #ff007f 0%, #ff7700 20%, #ffdd00 40%, #00ff88 60%, #00ddff 80%, #aa00ff 90%, #ff007f 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: polyCycle 1.8s linear infinite, jackpotTextThrob 1.2s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 14px rgba(251, 191, 36, 1)) drop-shadow(0 0 28px rgba(168, 85, 247, 0.9));
+  margin: 3px 0;
+  line-height: 1.15;
+}
+
+@keyframes jackpotTextThrob {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.06); }
+}
+
+.badge-multiplier.gold-win-text {
+  font-size: 24px;
+  color: #fef08a;
+  text-shadow: 
+    0 0 16px rgba(245, 158, 11, 1),
+    0 0 32px rgba(234, 88, 12, 0.8),
+    0 2px 4px rgba(0, 0, 0, 0.9);
 }
 
 .badge-desc {
@@ -3784,19 +4025,34 @@ h1, h2, h3, h4, .font-heading {
   }
 
   .tcg-banner-main {
-    padding: 3px 6px;
+    padding: 2px 5px;
+    gap: 3px;
   }
 
   .tcg-card-title {
-    font-size: 9.5px;
+    font-size: 8.5px;
+    line-height: 1.1;
   }
 
   .tcg-multiplier-shield {
-    min-width: 38px;
-    height: 23px;
-    font-size: 0.88rem;
+    min-width: 36px;
+    height: 21px;
+    font-size: 0.82rem;
     font-weight: 900;
-    padding: 0 4px;
+    padding: 0 3px;
+  }
+
+  .outcome-badge.is-jackpot-badge {
+    padding: 8px 16px;
+  }
+
+  .badge-multiplier.jackpot-text-burst {
+    font-size: 22px;
+    letter-spacing: 1px;
+  }
+
+  .badge-multiplier.gold-win-text {
+    font-size: 18px;
   }
 
   .card-back-border {

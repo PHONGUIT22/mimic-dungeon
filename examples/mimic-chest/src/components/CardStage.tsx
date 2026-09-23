@@ -691,9 +691,14 @@ export function CardStage({
             let transformStyle = '';
 
             if (isFlipped) {
-              transformStyle = isPicked
-                ? 'rotateY(180deg) scale(1.04)'
-                : 'rotateY(180deg) scale(0.96)';
+              if (isTilted) {
+                const baseScale = isPicked ? 1.07 : 1.03;
+                transformStyle = `rotateX(${tilt.rx}deg) rotateY(${180 - tilt.ry}deg) translateY(-8px) scale(${baseScale})`;
+              } else {
+                transformStyle = isPicked
+                  ? 'rotateY(180deg) scale(1.04)'
+                  : 'rotateY(180deg) scale(0.96)';
+              }
             } else if (isSqueezing) {
               transformStyle = 'translateY(-24px) scale(1.08)';
             } else if (isOtherSqueezing) {
@@ -786,6 +791,7 @@ export function CardStage({
                     }`}
                   >
                     {/* Dynamic Edition Sheen Overlays */}
+                    <div className="card-specular-glare" />
                     {cardData?.edition === 'polychrome' && <div className="card-polychrome-sheen" />}
                     {cardData?.edition === 'holo' && <div className="card-holo-sheen" />}
                     {(cardData?.edition === 'foil' || cardData?.tierIndex === 3) && <div className="card-foil-sheen" />}
@@ -794,6 +800,11 @@ export function CardStage({
                     <div className="tcg-frame-pinstripe">
                       {/* Inner Aged Parchment / Ivory Art Inlay Plate */}
                       <div className="tcg-parchment-plate">
+                        {/* Antique Plate Corner Filigrees */}
+                        <div className="card-plate-corner plate-corner-tl">✦</div>
+                        <div className="card-plate-corner plate-corner-tr">✦</div>
+                        <div className="card-plate-corner plate-corner-bl">✦</div>
+                        <div className="card-plate-corner plate-corner-br">✦</div>
                         {/* Top RPG Crest & Badges Header */}
                         <div className="tcg-top-header">
                           {/* Circular Embossed Crest Medallion */}
@@ -925,33 +936,41 @@ export function CardStage({
           )}
 
           {(spreadState === 'near_miss' || spreadState === 'done') && chosenCard && outcome && flipped[activePickIdx ?? 0] && (
-            <div className={`outcome-badge ${badgeClass}`}>
-              <span className="badge-tag">
-                {chosenCard.name} • {chosenCard.category}
-              </span>
-              <span className="badge-multiplier">
-                {chosenCard.tierIndex === 3
-                  ? 'x5.0 JACKPOT!'
-                  : chosenCard.tierIndex === 2
-                    ? 'x2.5 BIG WIN!'
-                    : chosenCard.tierIndex === 1
-                      ? 'x1.2 PROFIT'
-                      : 'CURSED (x0.0)'}
-              </span>
-              <span className="badge-desc">{chosenCard.description}</span>
-
-              {/* DARK ORACLE PROPHECY MICRO-COPY */}
-              <div className={`dark-oracle-prophecy oracle-tier-${chosenCard.tierIndex}`}>
-                <span className="oracle-quote-glyph">“</span>
-                <span className="oracle-quote-content">
-                  {getDarkOracleQuote(
-                    chosenCard.tierIndex,
-                    chosenCard.sigilSeed ?? outcome.roll ?? outcome.randomness,
-                  )}
+            <>
+              {chosenCard.tierIndex === 3 && (
+                <>
+                  <div className="jackpot-stage-flash" aria-hidden="true" />
+                  <div className="jackpot-cosmic-rays" aria-hidden="true" />
+                </>
+              )}
+              <div className={`outcome-badge ${badgeClass} ${chosenCard.tierIndex === 3 ? 'is-jackpot-badge' : ''}`}>
+                <span className="badge-tag">
+                  {chosenCard.name} • {chosenCard.category}
                 </span>
-                <span className="oracle-quote-glyph">”</span>
+                <span className={`badge-multiplier ${chosenCard.tierIndex === 3 ? 'jackpot-text-burst' : chosenCard.tierIndex === 2 ? 'gold-win-text' : ''}`}>
+                  {chosenCard.tierIndex === 3
+                    ? '★ x5.0 JACKPOT! ★'
+                    : chosenCard.tierIndex === 2
+                      ? '✦ x2.5 BIG WIN! ✦'
+                      : chosenCard.tierIndex === 1
+                        ? 'x1.2 PROFIT'
+                        : 'CURSED (x0.0)'}
+                </span>
+                <span className="badge-desc">{chosenCard.description}</span>
+
+                {/* DARK ORACLE PROPHECY MICRO-COPY */}
+                <div className={`dark-oracle-prophecy oracle-tier-${chosenCard.tierIndex}`}>
+                  <span className="oracle-quote-glyph">“</span>
+                  <span className="oracle-quote-content">
+                    {getDarkOracleQuote(
+                      chosenCard.tierIndex,
+                      chosenCard.sigilSeed ?? outcome.roll ?? outcome.randomness,
+                    )}
+                  </span>
+                  <span className="oracle-quote-glyph">”</span>
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {spreadState === 'idle' && (
