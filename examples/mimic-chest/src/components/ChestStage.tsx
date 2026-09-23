@@ -7,11 +7,10 @@ export type CardAnimationState = 'idle' | 'opening' | 'revealed';
 export function CardStage({
   state,
   outcome,
-  fastMode,
 }: {
   state: CardAnimationState;
   outcome: MimicOutcome | null;
-  fastMode: boolean;
+  fastMode?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -19,7 +18,7 @@ export function CardStage({
   useEffect(() => {
     if (state === 'opening') {
       sound.playCardDraw();
-      const timer = setTimeout(() => sound.playCardFlip(), fastMode ? 100 : 380);
+      const timer = setTimeout(() => sound.playCardFlip(), 380);
       return () => clearTimeout(timer);
     } else if (state === 'revealed' && outcome) {
       // Play tier-specific sound
@@ -36,7 +35,7 @@ export function CardStage({
       // Spawn celestial particle burst
       spawnParticles(outcome.tierIndex);
     }
-  }, [state, outcome, fastMode]);
+  }, [state, outcome]);
 
   // Particle System
   const particlesRef = useRef<
@@ -176,7 +175,7 @@ export function CardStage({
       <div className="stage-inner">
         <div className="card-scene">
           <div
-            className={`card-3d ${isFlipped ? 'flipped' : ''} ${state === 'opening' ? 'card-drawing' : ''} ${fastMode ? 'fast-flip' : ''}`}
+            className={`card-3d ${isFlipped ? 'flipped' : ''} ${state === 'opening' ? 'card-drawing' : ''}`}
           >
             {/* ==================================================================== */}
             {/* 1. CARD BACK (ÚP MẶT: VÒNG TRÒN MA THUẬT CỔ TỰ) */}

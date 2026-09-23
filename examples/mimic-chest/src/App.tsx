@@ -27,7 +27,6 @@ import { computeUnlockedPillarsCount, getArchetypeIndexForCard, getRelicId } fro
 import { sound } from './lib/audio';
 import {
   ArcanaEyeIcon,
-  LightningIcon,
   BgmIcon,
   BgmOffIcon,
   WarningIcon,
@@ -46,17 +45,8 @@ type Round = {
   chosenIndex?: number;
 };
 
-const FAST_MODE_KEY = 'mimic_fast_mode';
 const HISTORY_STORAGE_KEY = 'mimic_game_history';
 const COLLECTION_STORAGE_KEY = 'mimic_card_collection';
-
-function loadFastMode(): boolean {
-  try {
-    return localStorage.getItem(FAST_MODE_KEY) === 'true';
-  } catch {
-    return false;
-  }
-}
 
 function loadStoredHistory(): HistoryItem[] {
   try {
@@ -216,7 +206,6 @@ export function App() {
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<HistoryItem | null>(null);
   const [isScreenShaking, setIsScreenShaking] = useState(false);
   const [winDismissed, setWinDismissed] = useState(false);
-  const [fastMode, setFastMode] = useState(loadFastMode);
   const [history, setHistory] = useState<HistoryItem[]>(loadStoredHistory);
 
   const handleScreenShake = useCallback(() => {
@@ -273,18 +262,6 @@ export function App() {
     setHistory(prev => {
       const next: HistoryItem[] = [{ wager, outcome, sessionKey, sessionId, timestamp: Date.now() }, ...prev];
       saveStoredHistory(next);
-      return next;
-    });
-  }, []);
-
-  const toggleFastMode = useCallback(() => {
-    setFastMode(prev => {
-      const next = !prev;
-      try {
-        localStorage.setItem(FAST_MODE_KEY, String(next));
-      } catch {
-        // sandboxed
-      }
       return next;
     });
   }, []);
@@ -546,8 +523,8 @@ export function App() {
 
     const currentOutcome = round.outcome;
 
-    // Card reveal animation: 1200ms in normal mode (350ms near-miss + tally), 400ms in fast mode
-    const animDuration = fastMode ? 400 : 1200;
+    // Card reveal animation: 1200ms (380ms near-miss + tally sequence)
+    const animDuration = 1200;
 
     const animTimer = setTimeout(() => {
       // 1. MANDATORY: revealOutcome on hostApi to credit guest balance
@@ -575,7 +552,6 @@ export function App() {
     round?.sessionId,
     round?.outcome,
     round?.wager,
-    fastMode,
     recordOutcomeToHistory,
   ]);
 
@@ -701,18 +677,8 @@ export function App() {
         </div>
 
         <div className="header-right">
-          {/* Header Fast Mode & Mystic BGM Audio Controls */}
+          {/* Header Mystic BGM Audio Controls */}
           <div className="header-actions">
-            <button
-              type="button"
-              onClick={toggleFastMode}
-              className={`header-btn-util header-btn-fast ${fastMode ? 'active' : ''}`}
-              title="Toggle Fast Mode (skips card deal and reveal delay animations)"
-            >
-              <LightningIcon size={14} className="btn-icon" />
-              <span className="btn-label">Fast: {fastMode ? 'ON' : 'OFF'}</span>
-            </button>
-
             <button
               type="button"
               onClick={handleToggleBgm}
@@ -750,8 +716,6 @@ export function App() {
             onWagerChange={handleWagerChange}
             onOpenChest={handleActionClick}
             disabled={isBusy}
-            fastMode={fastMode}
-            onToggleFastMode={toggleFastMode}
             bgmActive={bgmActive}
             onToggleBgm={handleToggleBgm}
             onOpenPaytable={() => setPaytableOpen(true)}
@@ -790,7 +754,6 @@ export function App() {
               chosenIndex={round?.chosenIndex ?? null}
               outcome={round?.outcome ?? null}
               wager={round?.wager ?? 0n}
-              fastMode={fastMode}
               streak={currentStreak}
               onCardPick={handleCardPick}
               onScreenShake={handleScreenShake}

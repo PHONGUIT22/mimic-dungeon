@@ -7,7 +7,6 @@ import {
   TierSilverIcon,
   TierGoldIcon,
   TierDestinyIcon,
-  LightningIcon,
   BgmIcon,
   BgmOffIcon,
   SoundIcon,
@@ -24,8 +23,6 @@ export const Sidebar = memo(function Sidebar({
   onWagerChange,
   onOpenChest,
   disabled,
-  fastMode,
-  onToggleFastMode,
   onOpenPaytable,
   isDemoMode,
   onResetDemoBalance,
@@ -46,8 +43,6 @@ export const Sidebar = memo(function Sidebar({
   onWagerChange: (val: string) => void;
   onOpenChest: () => void;
   disabled: boolean;
-  fastMode: boolean;
-  onToggleFastMode: () => void;
   onOpenPaytable: () => void;
   onOpenCollection: () => void;
   discoveredCount?: number;
@@ -290,15 +285,6 @@ export const Sidebar = memo(function Sidebar({
 
       {/* Utility Bar */}
       <div className="sidebar-footer">
-        <button
-          type="button"
-          onClick={onToggleFastMode}
-          className={`btn-util ${fastMode ? 'active' : ''}`}
-          title="Skip card flip animation for faster rounds"
-        >
-          <LightningIcon size={14} /> Fast
-        </button>
-
         <button
           type="button"
           onClick={toggleBgm}

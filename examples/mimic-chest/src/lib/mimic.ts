@@ -327,10 +327,11 @@ export const CARDS_BY_TIER: Record<number, TarotCardDef[]> = {
 
 /**
  * Deterministically or pseudo-randomly assign card edition:
- * Standard: 70%
- * Foil: 15% (silver reflective border + spark glow)
- * Holo: 10% (prismatic color-shifting background)
- * Polychrome: 5% (vibrant rainbow gradient cycling sheen)
+ * Every single card is FOIL or HIGHER (0% standard).
+ * Dazzling edition rates:
+ * - Polychrome: 45% (vibrant rainbow gradient cycling sheen + star particle bursts)
+ * - Holo: 35% (prismatic color-shifting background shimmer)
+ * - Foil: 20% (gilded bullion gold & silver reflective sheen)
  */
 export function sampleCardEdition(seed?: number | string): CardEdition {
   let rand: number;
@@ -347,10 +348,9 @@ export function sampleCardEdition(seed?: number | string): CardEdition {
     rand = Math.random();
   }
 
-  if (rand < 0.70) return 'standard';
-  if (rand < 0.85) return 'foil';
-  if (rand < 0.95) return 'holo';
-  return 'polychrome';
+  if (rand < 0.45) return 'polychrome';
+  if (rand < 0.80) return 'holo';
+  return 'foil';
 }
 
 export function computeEditionBonus(baseMultiplier: number, edition: CardEdition): EditionBonusInfo {
@@ -381,6 +381,7 @@ export function computeEditionBonus(baseMultiplier: number, edition: CardEdition
       finalMultiplier: baseMultiplier,
     };
   }
+
   return {
     bonusText: '',
     bonusType: 'none',
@@ -393,7 +394,7 @@ export function computeEditionBonus(baseMultiplier: number, edition: CardEdition
 export function createDisplayCard(
   cardDef: TarotCardDef,
   wager: bigint,
-  edition: CardEdition = 'standard',
+  edition: CardEdition = 'foil',
   isActualOutcome: boolean = false,
   roll?: number,
 ): DisplayCard {
@@ -434,7 +435,7 @@ export function createDisplayCard(
 export function createDisplayCardFromMystic(
   mysticDef: MysticCardDef,
   wager: bigint,
-  edition: CardEdition = 'standard',
+  edition: CardEdition = 'foil',
   isActualOutcome: boolean = false,
   roll?: number,
 ): DisplayCard {

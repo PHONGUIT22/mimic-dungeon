@@ -180,13 +180,6 @@ h1, h2, h3, h4, .font-heading {
   color: #ffffff;
 }
 
-.header-btn-fast.active {
-  background: rgba(245, 158, 11, 0.14);
-  border-color: rgba(245, 158, 11, 0.45);
-  color: #fcd34d;
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
-}
-
 .header-btn-bgm {
   position: relative;
 }
@@ -1572,10 +1565,6 @@ h1, h2, h3, h4, .font-heading {
   height: 340px;
 }
 
-.card-3d.fast-flip {
-  transition-duration: 0.22s;
-}
-
 .card-3d.flipped {
   transform: rotateY(180deg) scale(0.98);
 }
@@ -1876,10 +1865,11 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .edition-foil {
-  background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
-  color: #0f172a;
-  box-shadow: 0 0 8px rgba(226, 232, 240, 0.7);
-  font-weight: 800;
+  background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #d97706 100%);
+  color: #451a03;
+  box-shadow: 0 0 10px rgba(254, 240, 138, 0.85);
+  font-weight: 900;
+  border: 1px solid rgba(254, 240, 138, 0.6);
 }
 
 .edition-holo {
@@ -2245,6 +2235,10 @@ h1, h2, h3, h4, .font-heading {
   animation: foilShimmer 2.2s ease-in-out infinite alternate;
   pointer-events: none;
   z-index: 4;
+}
+
+.card-front.is-foil {
+  box-shadow: 0 0 18px rgba(254, 240, 138, 0.55), 0 0 32px rgba(245, 158, 11, 0.35) !important;
 }
 
 .card-category {
@@ -4261,14 +4255,6 @@ h1, h2, h3, h4, .font-heading {
   .badge-rtp,
   .badge-vrf {
     display: none;
-  }
-
-  .header-btn-fast .btn-label {
-    display: none;
-  }
-
-  .header-btn-fast {
-    padding: 0 6px;
   }
 
   .header-btn-bgm {

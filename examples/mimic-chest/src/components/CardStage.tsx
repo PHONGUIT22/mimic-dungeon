@@ -50,7 +50,7 @@ export interface CardStageProps {
   chosenIndex?: number | null;
   outcome: MimicOutcome | null;
   wager?: bigint;
-  fastMode: boolean;
+  fastMode?: boolean;
   streak?: number;
   onCardPick?: (index: number) => void;
   onScreenShake?: () => void;
@@ -277,7 +277,6 @@ function CardStageComponent({
   chosenIndex = null,
   outcome,
   wager = 0n,
-  fastMode,
   streak = 0,
   onCardPick,
   onScreenShake,
@@ -487,7 +486,7 @@ function CardStageComponent({
         () => {
           setSpreadState('awaiting_pick');
         },
-        fastMode ? 260 : 540,
+        540,
       );
 
       return () => clearTimeout(dealTimer);
@@ -507,7 +506,7 @@ function CardStageComponent({
       setSpreadState('done');
       setFlipped([true, true, true]);
     }
-  }, [step, state, fastMode]);
+  }, [step, state]);
 
   const effectiveSelectedIdx = chosenIndex !== null && chosenIndex !== undefined ? chosenIndex : selectedIdx;
 
@@ -572,7 +571,7 @@ function CardStageComponent({
     sound.playCardSqueeze(outcome.tierIndex);
 
     const timers: Array<ReturnType<typeof setTimeout>> = [];
-    const squeezeDuration = fastMode ? 80 : 400;
+    const squeezeDuration = 400;
 
     const squeezeTimer = setTimeout(() => {
       setSqueezingTier(null);
@@ -616,11 +615,11 @@ function CardStageComponent({
           } else if (actualCard.edition === 'polychrome') {
             sound.playPolychromeChime();
           }
-        }, fastMode ? 100 : 220);
+        }, 220);
         timers.push(editionTimer);
 
         // Scoring tally for winning outcomes with streak pitch overdrive
-        // Delayed by 300ms (fast: 120ms) so card completes 3D flip cleanly without React state re-render drops
+        // Delayed by 300ms so card completes 3D flip cleanly without React state re-render drops
         if (outcome.won && outcome.multiplier > 0) {
           const tallyDelayTimer = setTimeout(() => {
             setTallyMultiplier(1.0);
@@ -637,11 +636,11 @@ function CardStageComponent({
                   onScreenShake?.();
                 }
               },
-              fastMode,
+              false,
               1.0,
               streak >= 3 ? 4 : streak === 2 ? 2 : 0,
             );
-          }, fastMode ? 120 : 300);
+          }, 300);
           timers.push(tallyDelayTimer);
         } else {
           setTallyMultiplier(0);
@@ -649,7 +648,7 @@ function CardStageComponent({
           setIsTallyDone(true);
         }
 
-        const nearMissDelay = fastMode ? 220 : (outcome.tierIndex === 0 ? 380 : 650);
+        const nearMissDelay = outcome.tierIndex === 0 ? 380 : 650;
         const nearMissTimer = setTimeout(() => {
           setSpreadState('near_miss');
           setFlipped([true, true, true]);
@@ -663,7 +662,7 @@ function CardStageComponent({
 
           const doneTimer = setTimeout(() => {
             setSpreadState('done');
-          }, fastMode ? 150 : 500);
+          }, 500);
           timers.push(doneTimer);
         }, nearMissDelay);
         timers.push(nearMissTimer);
@@ -685,11 +684,11 @@ function CardStageComponent({
                   onScreenShake?.();
                 }
               },
-              fastMode,
+              false,
               1.0,
               streak >= 3 ? 4 : streak === 2 ? 2 : 0,
             );
-          }, fastMode ? 120 : 300);
+          }, 300);
           timers.push(tallyDelayTimer);
         } else {
           setTallyMultiplier(0);
@@ -698,7 +697,7 @@ function CardStageComponent({
         }
 
         // Flip remaining 2 near-miss cards (380ms for The Void x0.0 loss, or 600ms after tally)
-        const delayTime = fastMode ? 180 : outcome.tierIndex === 0 ? 380 : 600;
+        const delayTime = outcome.tierIndex === 0 ? 380 : 600;
         const nearMissTimer = setTimeout(() => {
           setSpreadState('near_miss');
           setFlipped([true, true, true]);
@@ -712,7 +711,7 @@ function CardStageComponent({
 
           const doneTimer = setTimeout(() => {
             setSpreadState('done');
-          }, fastMode ? 150 : 500);
+          }, 500);
           timers.push(doneTimer);
         }, delayTime);
         timers.push(nearMissTimer);
@@ -723,7 +722,7 @@ function CardStageComponent({
     return () => {
       timers.forEach(t => clearTimeout(t));
     };
-  }, [step, state, chosenIndex, selectedIdx, outcome, wager, spreadState, fastMode, spawnParticles, onScreenShake]);
+  }, [step, state, chosenIndex, selectedIdx, outcome, wager, spreadState, spawnParticles, onScreenShake]);
 
   // Clean up active particle animation frame on unmount
   useEffect(() => {
@@ -969,8 +968,8 @@ function CardStageComponent({
               >
                 <div
                   className={`card-3d ${isFlipped ? 'flipped' : ''} ${
-                    fastMode ? 'fast-flip' : ''
-                  } ${isDealing ? 'card-dealing' : ''} ${isPicked ? 'card-picked' : ''} ${
+                    isDealing ? 'card-dealing' : ''
+                  } ${isPicked ? 'card-picked' : ''} ${
                     isSqueezing ? `card-squeezing squeeze-card-tier-${squeezingTier ?? 0}` : ''
                   } ${
                     isOtherSqueezing ? 'card-squeeze-dimmed' : ''
@@ -978,7 +977,7 @@ function CardStageComponent({
                     isFlipped && !isPicked ? 'card-unpicked' : ''
                   }`}
                   style={{
-                    animationDelay: `${slotIndex * (fastMode ? 40 : 90)}ms`,
+                    animationDelay: `${slotIndex * 90}ms`,
                   }}
                 >
                   {/* CARD BACK (MẶT LƯNG: VÒNG TRÒN MA THUẬT VÀNG CỔ) */}
