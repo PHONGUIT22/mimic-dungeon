@@ -1619,16 +1619,18 @@ h1, h2, h3, h4, .font-heading {
   transform: rotateY(0deg) translateZ(1px);
   -webkit-transform: rotateY(0deg) translateZ(1px);
   clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
-  background: linear-gradient(145deg, #fcd34d 0%, #d97706 25%, #78350f 55%, #b45309 80%, #fef08a 100%);
-  border: 2px solid #f59e0b;
+  background: linear-gradient(145deg, #fef08a 0%, #f59e0b 22%, #78350f 45%, #d97706 70%, #fef08a 90%, #b45309 100%);
+  border: 2px solid #fbbf24;
   padding: 5px;
   display: flex;
   flex-direction: column;
   box-shadow: 
-    0 16px 36px rgba(0, 0, 0, 0.75),
-    inset 0 0 16px rgba(245, 158, 11, 0.55),
-    inset 0 2px 4px rgba(254, 240, 138, 0.8),
+    0 18px 44px rgba(0, 0, 0, 0.85),
+    inset 0 0 16px rgba(245, 158, 11, 0.6),
+    inset 0 2px 4px rgba(254, 240, 138, 0.85),
     inset 0 -2px 6px rgba(69, 26, 3, 0.95);
+  position: relative;
+  overflow: hidden;
 }
 
 .card-back-border {
@@ -1641,65 +1643,140 @@ h1, h2, h3, h4, .font-heading {
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 8px;
-  background: radial-gradient(circle at 50% 50%, #171124 0%, #0a0614 85%);
+  padding: 8px 6px 10px 6px;
+  background-color: #08030d;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.05) 1px, transparent 1px),
+    radial-gradient(ellipse at 50% 48%, #1f0f32 0%, #130822 55%, #06020c 100%);
+  background-size: 8px 8px, 100% 100%;
   box-shadow: 
-    inset 0 0 22px rgba(0, 0, 0, 0.9),
-    inset 0 0 10px rgba(180, 83, 9, 0.35);
+    inset 0 0 0 1px rgba(254, 240, 138, 0.35),
+    inset 0 0 32px rgba(0, 0, 0, 0.95),
+    inset 0 0 12px rgba(180, 83, 9, 0.4);
 }
 
-.card-corner {
+/* 4 Corner Guilloche / Celtic Filigrees */
+.corner-filigree-svg {
   position: absolute;
-  font-size: 11px;
-  color: #f59e0b;
-  line-height: 1;
-  text-shadow: 0 0 4px rgba(245, 158, 11, 0.7);
+  width: 26px;
+  height: 26px;
+  pointer-events: none;
+  z-index: 5;
+  filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.5));
 }
 
-.corner-tl { top: 4px; left: 6px; }
-.corner-tr { top: 4px; right: 6px; }
-.corner-bl { bottom: 4px; left: 6px; }
-.corner-br { bottom: 4px; right: 6px; }
+.corner-tl { top: 4px; left: 4px; }
+.corner-tr { top: 4px; right: 4px; transform: scaleX(-1); }
+.corner-bl { bottom: 4px; left: 4px; transform: scaleY(-1); }
+.corner-br { bottom: 4px; right: 4px; transform: scale(-1, -1); }
 
+/* Top Occult Celestial Sigil Header */
+.card-back-top-header {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+}
+
+.top-header-flourish {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 4px;
+  color: rgba(254, 240, 138, 0.85);
+  text-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
+  line-height: 1;
+}
+
+/* Expanded Central Sacred Geometry Mandala Astrolabe (55-60% of card) */
 .card-back-mandala {
-  width: clamp(135px, 18vw, 175px);
-  height: clamp(135px, 18vw, 175px);
+  width: clamp(160px, 22vw, 195px);
+  height: clamp(160px, 22vw, 195px);
   margin: auto 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: mandalaFloat 4s ease-in-out infinite;
+  position: relative;
+  z-index: 4;
 }
 
 .mandala-svg {
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.6));
+  filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.55));
+  transition: transform 0.4s ease, filter 0.3s ease;
+}
+
+.card-3d:hover .mandala-svg,
+.card-3d.is-tilting .mandala-svg {
+  filter: drop-shadow(0 0 18px rgba(254, 240, 138, 0.85));
+  animation: astrolabeGentlyBreathe 4s ease-in-out infinite;
 }
 
 .card-drawing .mandala-svg {
   animation: mandalaSpin 3s linear infinite;
-  filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.95));
+  filter: drop-shadow(0 0 24px rgba(245, 158, 11, 0.95));
+}
+
+@keyframes astrolabeGentlyBreathe {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.025) rotate(2deg); }
+}
+
+/* Bottom Classical Hermetic Typography */
+.card-back-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 2px;
+  z-index: 4;
 }
 
 .card-back-title {
   font-family: 'Cinzel', serif;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 900;
-  letter-spacing: 3px;
-  color: #fcd34d;
+  letter-spacing: 4px;
+  background: linear-gradient(180deg, #fffbeb 0%, #fde047 30%, #f59e0b 70%, #b45309 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   text-transform: uppercase;
-  margin-top: 6px;
-  text-shadow: 0 0 8px rgba(245, 158, 11, 0.85);
+  line-height: 1.1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 8px rgba(245, 158, 11, 0.7));
+}
+
+.card-back-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 110px;
+  opacity: 0.85;
+}
+
+.card-back-divider .divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #f59e0b, transparent);
+}
+
+.card-back-divider .divider-glyph {
+  font-size: 7px;
+  color: #fde047;
+  line-height: 1;
+  text-shadow: 0 0 4px rgba(245, 158, 11, 0.8);
 }
 
 .card-back-sub {
-  font-family: monospace;
-  font-size: 8.5px;
-  font-weight: 800;
-  letter-spacing: 2px;
-  color: #b45309;
+  font-family: 'Cinzel', serif, Georgia;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #f59e0b;
   text-transform: uppercase;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 /* ==========================================================================
@@ -4071,14 +4148,39 @@ h1, h2, h3, h4, .font-heading {
     padding: 6px 4px;
   }
 
-  .card-back-title {
+  .card-back-mandala {
+    width: 96px;
+    height: 96px;
+  }
+
+  .corner-filigree-svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .top-header-flourish {
     font-size: 8px;
-    letter-spacing: 0.8px;
+    letter-spacing: 2px;
+  }
+
+  .card-back-title {
+    font-size: 9.5px;
+    letter-spacing: 2px;
     margin-top: 1px;
+  }
+
+  .card-back-divider {
+    max-width: 70px;
+    gap: 4px;
+  }
+
+  .card-back-divider .divider-glyph {
+    font-size: 5px;
   }
 
   .card-back-sub {
     font-size: 6px;
+    letter-spacing: 1.5px;
   }
 
   .card-roman {

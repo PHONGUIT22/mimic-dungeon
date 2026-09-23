@@ -56,6 +56,221 @@ export interface CardStageProps {
   onScreenShake?: () => void;
 }
 
+/**
+ * Ornate Guilloche / Celtic Filigree Corner Bracket for Occult Tarot Card Back
+ */
+function CornerFiligree({ className }: { className: string }) {
+  return (
+    <svg className={`corner-filigree-svg ${className}`} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <path
+        d="M2 2h26M2 2v26"
+        stroke="#fde047"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M5 5h18c-3 0-6 3-6 6 0 5-5 8-8 8-3 0-4-3-4-6V5z"
+        stroke="#d97706"
+        strokeWidth="0.9"
+        fill="rgba(245, 158, 11, 0.08)"
+      />
+      <path
+        d="M5 5v18c0-3 3-6 6-6 5 0 8-5 8-8 0-3-3-4-6-4H5z"
+        stroke="#d97706"
+        strokeWidth="0.9"
+      />
+      <circle cx="8" cy="8" r="1.6" fill="#fde047" />
+      <circle cx="20" cy="5" r="1" fill="#f59e0b" />
+      <circle cx="5" cy="20" r="1" fill="#f59e0b" />
+      <polygon points="12,12 14,10 16,12 14,14" fill="#fde047" />
+    </svg>
+  );
+}
+
+/**
+ * Layered Arcane Astrolabe / Hermetic Metatron Sacred Geometry Mandala
+ * Center emblem: Sol & Luna (Sun & Moon Occult Dualism) with All-Seeing Eye core
+ */
+function TarotMandalaAstrolabe() {
+  return (
+    <svg className="mandala-svg" viewBox="0 0 200 200" fill="none">
+      <defs>
+        {/* Rich Gilded Foil Metallic Gradient */}
+        <linearGradient id="astrolabeGold" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#fef08a" />
+          <stop offset="25%" stopColor="#f59e0b" />
+          <stop offset="50%" stopColor="#d97706" />
+          <stop offset="75%" stopColor="#fbbf24" />
+          <stop offset="100%" stopColor="#78350f" />
+        </linearGradient>
+
+        <linearGradient id="astrolabeGoldLight" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#fef9c3" />
+          <stop offset="50%" stopColor="#fde047" />
+          <stop offset="100%" stopColor="#d97706" />
+        </linearGradient>
+
+        <radialGradient id="sunAura" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="rgba(254, 240, 138, 0.45)" />
+          <stop offset="40%" stopColor="rgba(245, 158, 11, 0.2)" />
+          <stop offset="85%" stopColor="rgba(217, 119, 6, 0.05)" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+      </defs>
+
+      {/* Layer 1: Ambient Solar Aura Glow */}
+      <circle cx="100" cy="100" r="95" fill="url(#sunAura)" />
+
+      {/* Layer 2: Outermost Gilded Edge Ring with Cardinal Accent Diamonds */}
+      <circle cx="100" cy="100" r="95" stroke="url(#astrolabeGold)" strokeWidth="1.5" />
+      <circle cx="100" cy="100" r="92" stroke="#d97706" strokeWidth="0.8" />
+
+      {/* 4 Cardinal Diamond Jewels on Outer Ring */}
+      <polygon points="100,2 103,5 100,8 97,5" fill="#fef08a" />
+      <polygon points="100,192 103,195 100,198 97,195" fill="#fef08a" />
+      <polygon points="2,100 5,97 8,100 5,103" fill="#fef08a" />
+      <polygon points="192,100 195,97 198,100 195,103" fill="#fef08a" />
+
+      {/* 4 Diagonal Cardinal Accent Pips */}
+      <circle cx="33" cy="33" r="2" fill="#f59e0b" />
+      <circle cx="167" cy="33" r="2" fill="#f59e0b" />
+      <circle cx="33" cy="167" r="2" fill="#f59e0b" />
+      <circle cx="167" cy="167" r="2" fill="#f59e0b" />
+
+      {/* Layer 3: Dashed Astrological Degree Dial */}
+      <circle
+        cx="100"
+        cy="100"
+        r="88"
+        stroke="#f59e0b"
+        strokeWidth="1.2"
+        strokeDasharray="2 3.5"
+        opacity="0.9"
+      />
+
+      {/* Layer 4: Astronomical 12-Zodiac Tick Ring */}
+      <circle cx="100" cy="100" r="82" stroke="url(#astrolabeGold)" strokeWidth="1" />
+      <circle
+        cx="100"
+        cy="100"
+        r="78"
+        stroke="#d97706"
+        strokeWidth="0.8"
+        strokeDasharray="1 7"
+        opacity="0.75"
+      />
+
+      {/* 12 Astrolabe Radial Ray Division Ticks (from r=82 to r=88) */}
+      {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(deg => {
+        const rad = (deg * Math.PI) / 180;
+        const x1 = (100 + 82 * Math.cos(rad)).toFixed(2);
+        const y1 = (100 + 82 * Math.sin(rad)).toFixed(2);
+        const x2 = (100 + 88 * Math.cos(rad)).toFixed(2);
+        const y2 = (100 + 88 * Math.sin(rad)).toFixed(2);
+        return <line key={deg} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#fde047" strokeWidth="1" />;
+      })}
+
+      {/* Layer 5: Sacred Geometry — Interlocking Octagram (Nested 45° Squares) */}
+      <polygon
+        points="100,24 176,100 100,176 24,100"
+        stroke="url(#astrolabeGold)"
+        strokeWidth="1.2"
+        fill="rgba(245, 158, 11, 0.03)"
+      />
+      <polygon
+        points="46,46 154,46 154,154 46,154"
+        stroke="url(#astrolabeGold)"
+        strokeWidth="1.2"
+        fill="rgba(245, 158, 11, 0.03)"
+      />
+
+      {/* Secondary Inner Hexagram Lines */}
+      <polygon
+        points="100,32 159,134 41,134"
+        stroke="#f59e0b"
+        strokeWidth="0.9"
+        opacity="0.8"
+      />
+      <polygon
+        points="100,168 159,66 41,66"
+        stroke="#f59e0b"
+        strokeWidth="0.9"
+        opacity="0.8"
+      />
+
+      {/* Layer 6: Mid-Sanctuary Beaded Circle */}
+      <circle cx="100" cy="100" r="54" stroke="url(#astrolabeGold)" strokeWidth="1.2" />
+      <circle
+        cx="100"
+        cy="100"
+        r="50"
+        stroke="#fde047"
+        strokeWidth="0.9"
+        strokeDasharray="1.5 2.5"
+        opacity="0.85"
+      />
+      <circle cx="100" cy="100" r="46" stroke="#d97706" strokeWidth="0.8" />
+
+      {/* 8 Alchemical Pips on Sanctuary Perimeter */}
+      {[0, 45, 90, 135, 180, 225, 270, 315].map(deg => {
+        const rad = (deg * Math.PI) / 180;
+        const cx = (100 + 48 * Math.cos(rad)).toFixed(2);
+        const cy = (100 + 48 * Math.sin(rad)).toFixed(2);
+        return <circle key={deg} cx={cx} cy={cy} r="1.4" fill="#fef08a" />;
+      })}
+
+      {/* Layer 7: Central Occult Focal Emblem — SOL & LUNA (Sun & Moon Occult Dualism) */}
+      {/* 16 Solar Flare Rays (Alternating straight and flame bursts) */}
+      <g className="mandala-solar-rays">
+        {[0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 270, 292.5, 315, 337.5].map((deg, i) => {
+          const isMajor = i % 2 === 0;
+          const len = isMajor ? 44 : 38;
+          const rad = (deg * Math.PI) / 180;
+          const x2 = (100 + len * Math.cos(rad)).toFixed(2);
+          const y2 = (100 + len * Math.sin(rad)).toFixed(2);
+          const base1 = ((deg - 5) * Math.PI) / 180;
+          const base2 = ((deg + 5) * Math.PI) / 180;
+          const bx1 = (100 + 26 * Math.cos(base1)).toFixed(2);
+          const by1 = (100 + 26 * Math.sin(base1)).toFixed(2);
+          const bx2 = (100 + 26 * Math.cos(base2)).toFixed(2);
+          const by2 = (100 + 26 * Math.sin(base2)).toFixed(2);
+          return (
+            <polygon
+              key={deg}
+              points={`${bx1},${by1} ${x2},${y2} ${bx2},${by2}`}
+              fill={isMajor ? 'url(#astrolabeGoldLight)' : '#d97706'}
+              opacity={isMajor ? 0.95 : 0.75}
+            />
+          );
+        })}
+      </g>
+
+      {/* Radiant Sun Disk */}
+      <circle cx="100" cy="100" r="26" fill="url(#astrolabeGold)" />
+      <circle cx="100" cy="100" r="24" fill="#1b0d2a" />
+
+      {/* Crescent Moon (Luna) Embracing the Solar Core */}
+      <path
+        d="M 100,76 A 24,24 0 0,1 100,124 A 18,18 0 0,0 100,76 Z"
+        fill="url(#astrolabeGoldLight)"
+        filter="drop-shadow(0 0 3px rgba(254, 240, 138, 0.7))"
+      />
+
+      {/* Central Mystical Eye of Providence / 8-pointed Alchemical Star */}
+      <polygon
+        points="100,88 103,97 112,100 103,103 100,112 97,103 88,100 97,97"
+        fill="#fef08a"
+      />
+      <polygon
+        points="100,92 102,98 108,100 102,102 100,108 98,102 92,100 98,98"
+        fill="#b45309"
+      />
+      <circle cx="100" cy="100" r="2.5" fill="#fef08a" />
+      <circle cx="100" cy="100" r="1.2" fill="#1b0d2a" />
+    </svg>
+  );
+}
+
 export function CardStage({
   step,
   state,
@@ -759,26 +974,35 @@ export function CardStage({
                       </div>
                     )}
                     <div className="card-back-border">
-                      <div className="card-corner corner-tl">✦</div>
-                      <div className="card-corner corner-tr">✦</div>
-                      <div className="card-corner corner-bl">✦</div>
-                      <div className="card-corner corner-br">✦</div>
+                      {/* 4 Guilloche Celtic / Baroque Filigree Corner Brackets */}
+                      <CornerFiligree className="corner-tl" />
+                      <CornerFiligree className="corner-tr" />
+                      <CornerFiligree className="corner-bl" />
+                      <CornerFiligree className="corner-br" />
 
+                      {/* Top Occult Celestial Sigil Header */}
+                      <div className="card-back-top-header" aria-hidden="true">
+                        <span className="top-header-flourish">✦ ☉ ✦</span>
+                      </div>
+
+                      {/* Expanded Central Sacred Geometry Mandala Astrolabe */}
                       <div className="card-back-mandala">
-                        <svg className="mandala-svg" viewBox="0 0 100 100" fill="none">
-                          <circle cx="50" cy="50" r="44" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="3 2" />
-                          <circle cx="50" cy="50" r="38" stroke="#d97706" strokeWidth="1" />
-                          <polygon points="50,14 62,40 90,40 68,56 76,82 50,66 24,82 32,56 10,40 38,40" stroke="#f59e0b" strokeWidth="1.2" fill="none" opacity="0.8" />
-                          <circle cx="50" cy="50" r="18" stroke="#f59e0b" strokeWidth="1.5" />
-                          <circle cx="50" cy="50" r="8" fill="#f59e0b" opacity="0.6" />
-                        </svg>
+                        <TarotMandalaAstrolabe />
                       </div>
 
-                      <div className="card-back-title">
-                        ARCANA
-                      </div>
-                      <div className="card-back-sub">
-                        TAROT
+                      {/* Bottom Classical Hermetic Typography */}
+                      <div className="card-back-footer">
+                        <div className="card-back-title">
+                          ARCANA
+                        </div>
+                        <div className="card-back-divider" aria-hidden="true">
+                          <span className="divider-line" />
+                          <span className="divider-glyph">◈</span>
+                          <span className="divider-line" />
+                        </div>
+                        <div className="card-back-sub">
+                          TAROT OF FATE
+                        </div>
                       </div>
                     </div>
                   </div>
