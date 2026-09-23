@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { formatUnits, parseUnits } from 'viem';
 import { sound } from '../lib/audio';
 import type { RoundStep } from '../lib/mimic';
@@ -16,7 +16,7 @@ import {
   GrimoireIcon,
 } from './Icons';
 
-export function Sidebar({
+export const Sidebar = memo(function Sidebar({
   balance,
   decimals,
   symbol,
@@ -340,4 +340,4 @@ export function Sidebar({
       </div>
     </aside>
   );
-}
+});

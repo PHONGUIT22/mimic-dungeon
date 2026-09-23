@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import {
   type MimicOutcome,
   type DisplayCard,
@@ -271,7 +271,7 @@ function TarotMandalaAstrolabe() {
   );
 }
 
-export function CardStage({
+function CardStageComponent({
   step,
   state,
   chosenIndex = null,
@@ -329,22 +329,8 @@ export function CardStage({
     return () => clearInterval(timer);
   }, [ALTAR_FOOT_PROPHECIES.length]);
 
-  // Mouse 3D Parallax tilt tracking & Dynamic Balatro Foil cursor reflection
-  const [tilt, setTilt] = useState<{
-    index: number | null;
-    rx: number;
-    ry: number;
-    angle: number;
-    posX: number;
-    posY: number;
-  }>({
-    index: null,
-    rx: 0,
-    ry: 0,
-    angle: 115,
-    posX: 50,
-    posY: 50,
-  });
+  // High-performance 3D Parallax tilt tracking is applied directly to DOM elements
+  // via CSS custom properties (--rx, --ry, --foil-angle) for buttery smooth 60-120fps with 0 React re-renders.
 
   // Audio chime trigger on streak progression (Rune Resonance)
   const prevStreakRef = useRef(streak);
@@ -400,7 +386,6 @@ export function CardStage({
           continue;
         }
 
-        ctx.save();
         ctx.globalAlpha = p.alpha;
         ctx.fillStyle = p.color;
 
@@ -417,8 +402,8 @@ export function CardStage({
         } else {
           ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
         }
-        ctx.restore();
       }
+      ctx.globalAlpha = 1;
 
       animIdRef.current = requestAnimationFrame(render);
     };
@@ -433,8 +418,8 @@ export function CardStage({
     const isPolychrome = edition === 'polychrome';
     const isHolo = edition === 'holo';
 
-    const baseCount = isPolychrome ? 160 : tierIndex === 3 ? 130 : tierIndex === 2 ? 85 : tierIndex === 1 ? 55 : 45;
-    const count = Math.round(baseCount * (streak >= 3 ? 1.6 : 1.0));
+    const baseCount = isPolychrome ? 60 : tierIndex === 3 ? 50 : tierIndex === 2 ? 36 : tierIndex === 1 ? 26 : 20;
+    const count = Math.round(baseCount * (streak >= 3 ? 1.3 : 1.0));
 
     const polyColors = ['#f43f5e', '#fb923c', '#facc15', '#4ade80', '#38bdf8', '#a855f7', '#ec4899', '#ffffff'];
     const holoColors = ['#38bdf8', '#c084fc', '#818cf8', '#e0e7ff', '#3b82f6', '#ffffff'];
@@ -455,16 +440,16 @@ export function CardStage({
     const newParticles = [];
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * (isPolychrome || tierIndex === 3 ? 10 : 7) + 2;
+      const speed = Math.random() * (isPolychrome || tierIndex === 3 ? 8 : 6) + 2;
       newParticles.push({
         x: originX,
         y: originY,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - (tierIndex > 0 || isPolychrome ? 2.5 : 0),
-        size: Math.random() * 5 + 3,
+        vy: Math.sin(angle) * speed - (tierIndex > 0 || isPolychrome ? 2.2 : 0),
+        size: Math.random() * 4 + 2.5,
         color: colors[Math.floor(Math.random() * colors.length)],
         alpha: 1,
-        decay: Math.random() * 0.018 + 0.012,
+        decay: Math.random() * 0.02 + 0.016,
         shape: (isPolychrome || isHolo || tierIndex === 3 || streak >= 3 ? 'star' : Math.random() > 0.5 ? 'circle' : 'square') as
           | 'circle'
           | 'star'
@@ -502,7 +487,7 @@ export function CardStage({
         () => {
           setSpreadState('awaiting_pick');
         },
-        fastMode ? 120 : 360,
+        fastMode ? 260 : 540,
       );
 
       return () => clearTimeout(dealTimer);
@@ -526,10 +511,20 @@ export function CardStage({
 
   const effectiveSelectedIdx = chosenIndex !== null && chosenIndex !== undefined ? chosenIndex : selectedIdx;
 
-  // 2. Handle card selection by player
+  // 2. Handle card selection by player (clears tilt so 0.45s 3D flip easing executes cleanly)
   const handleCardClick = useCallback(
-    (idx: number) => {
+    (idx: number, e?: React.MouseEvent<HTMLDivElement>) => {
       if (!((step === 'awaiting_pick' || spreadState === 'awaiting_pick') && effectiveSelectedIdx === null)) return;
+      
+      if (e?.currentTarget) {
+        const cardEl = e.currentTarget.querySelector('.card-3d') as HTMLElement | null;
+        if (cardEl) {
+          cardEl.classList.remove('is-tilting');
+          cardEl.style.removeProperty('--rx');
+          cardEl.style.removeProperty('--ry');
+        }
+      }
+
       sound.playCardSelect();
       setSelectedIdx(idx);
       onCardPick?.(idx);
@@ -625,32 +620,36 @@ export function CardStage({
         timers.push(editionTimer);
 
         // Scoring tally for winning outcomes with streak pitch overdrive
+        // Delayed by 300ms (fast: 120ms) so card completes 3D flip cleanly without React state re-render drops
         if (outcome.won && outcome.multiplier > 0) {
-          setTallyMultiplier(1.0);
-          setIsTallying(true);
-          setIsTallyDone(false);
+          const tallyDelayTimer = setTimeout(() => {
+            setTallyMultiplier(1.0);
+            setIsTallying(true);
+            setIsTallyDone(false);
 
-          sound.playPitchShiftTally(
-            outcome.multiplier,
-            (_stepIndex, currentMult, isFinal) => {
-              setTallyMultiplier(currentMult);
-              if (isFinal) {
-                setIsTallying(false);
-                setIsTallyDone(true);
-                onScreenShake?.();
-              }
-            },
-            fastMode,
-            1.0,
-            streak >= 3 ? 4 : streak === 2 ? 2 : 0,
-          );
+            sound.playPitchShiftTally(
+              outcome.multiplier,
+              (_stepIndex, currentMult, isFinal) => {
+                setTallyMultiplier(currentMult);
+                if (isFinal) {
+                  setIsTallying(false);
+                  setIsTallyDone(true);
+                  onScreenShake?.();
+                }
+              },
+              fastMode,
+              1.0,
+              streak >= 3 ? 4 : streak === 2 ? 2 : 0,
+            );
+          }, fastMode ? 120 : 300);
+          timers.push(tallyDelayTimer);
         } else {
           setTallyMultiplier(0);
           setIsTallying(false);
           setIsTallyDone(true);
         }
 
-        const nearMissDelay = fastMode ? 200 : (outcome.tierIndex === 0 ? 350 : 500);
+        const nearMissDelay = fastMode ? 220 : (outcome.tierIndex === 0 ? 380 : 650);
         const nearMissTimer = setTimeout(() => {
           setSpreadState('near_miss');
           setFlipped([true, true, true]);
@@ -671,32 +670,35 @@ export function CardStage({
       } else {
         // Standard Edition Card
         if (outcome.won && outcome.multiplier > 0) {
-          setTallyMultiplier(1.0);
-          setIsTallying(true);
-          setIsTallyDone(false);
+          const tallyDelayTimer = setTimeout(() => {
+            setTallyMultiplier(1.0);
+            setIsTallying(true);
+            setIsTallyDone(false);
 
-          sound.playPitchShiftTally(
-            outcome.multiplier,
-            (_stepIndex, currentMult, isFinal) => {
-              setTallyMultiplier(currentMult);
-              if (isFinal) {
-                setIsTallying(false);
-                setIsTallyDone(true);
-                onScreenShake?.();
-              }
-            },
-            fastMode,
-            1.0,
-            streak >= 3 ? 4 : streak === 2 ? 2 : 0,
-          );
+            sound.playPitchShiftTally(
+              outcome.multiplier,
+              (_stepIndex, currentMult, isFinal) => {
+                setTallyMultiplier(currentMult);
+                if (isFinal) {
+                  setIsTallying(false);
+                  setIsTallyDone(true);
+                  onScreenShake?.();
+                }
+              },
+              fastMode,
+              1.0,
+              streak >= 3 ? 4 : streak === 2 ? 2 : 0,
+            );
+          }, fastMode ? 120 : 300);
+          timers.push(tallyDelayTimer);
         } else {
           setTallyMultiplier(0);
           setIsTallying(false);
           setIsTallyDone(true);
         }
 
-        // Flip remaining 2 near-miss cards (350ms for The Void x0.0 loss, or 450ms after tally)
-        const delayTime = fastMode ? 150 : outcome.tierIndex === 0 ? 350 : 450;
+        // Flip remaining 2 near-miss cards (380ms for The Void x0.0 loss, or 600ms after tally)
+        const delayTime = fastMode ? 180 : outcome.tierIndex === 0 ? 380 : 600;
         const nearMissTimer = setTimeout(() => {
           setSpreadState('near_miss');
           setFlipped([true, true, true]);
@@ -749,44 +751,92 @@ export function CardStage({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mouse Move Parallax Tilt Handler (Desktop) & Dynamic Balatro Foil Reflection
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>, cardIndex: number) => {
-    if (spreadState === 'dealing' || spreadState === 'squeezing') return;
+  // High-performance DOM-direct 3D Parallax Tilt (0 React re-renders, 60-120fps GPU)
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (spreadState !== 'awaiting_pick' && spreadState !== 'done') return;
+    const cardEl = e.currentTarget.querySelector('.card-3d') as HTMLElement | null;
+    if (!cardEl) return;
+
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
     const y = e.clientY - rect.top - rect.height / 2;
-    // Natural, subtle 3D tilt (capped at 6.5 deg) for realistic, weighted physical card feel
-    const rx = Number((-(y / (rect.height / 2)) * 6.5).toFixed(2));
-    const ry = Number(((x / (rect.width / 2)) * 6.5).toFixed(2));
+
+    const rx = (-(y / (rect.height / 2)) * 6.0).toFixed(2);
+    const ry = ((x / (rect.width / 2)) * 6.0).toFixed(2);
     const angle = Math.round((Math.atan2(y, x) * 180) / Math.PI + 90);
     const posX = Math.max(0, Math.min(100, Math.round(50 + (x / rect.width) * 55)));
     const posY = Math.max(0, Math.min(100, Math.round(50 + (y / rect.height) * 55)));
-    setTilt({ index: cardIndex, rx, ry, angle, posX, posY });
-  };
 
-  const handleMouseLeave = () => {
-    setTilt({ index: null, rx: 0, ry: 0, angle: 115, posX: 50, posY: 50 });
-  };
+    cardEl.style.setProperty('--rx', `${rx}deg`);
+    cardEl.style.setProperty('--ry', `${ry}deg`);
+    cardEl.style.setProperty('--foil-angle', `${angle}deg`);
+    cardEl.style.setProperty('--foil-pos-x', `${posX}%`);
+    cardEl.style.setProperty('--foil-pos-y', `${posY}%`);
+    cardEl.style.setProperty('--shadow-x', `${(-Number(ry) * 1.5).toFixed(1)}px`);
+    cardEl.style.setProperty('--shadow-y', `${(18 + Number(rx) * 1.2).toFixed(1)}px`);
+
+    if (!cardEl.classList.contains('is-tilting')) {
+      cardEl.classList.add('is-tilting');
+    }
+  }, [spreadState]);
+
+  const handleMouseLeave = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const cardEl = e.currentTarget.querySelector('.card-3d') as HTMLElement | null;
+    if (cardEl) {
+      cardEl.classList.remove('is-tilting');
+      cardEl.style.removeProperty('--rx');
+      cardEl.style.removeProperty('--ry');
+      cardEl.style.removeProperty('--foil-angle');
+      cardEl.style.removeProperty('--foil-pos-x');
+      cardEl.style.removeProperty('--foil-pos-y');
+      cardEl.style.removeProperty('--shadow-x');
+      cardEl.style.removeProperty('--shadow-y');
+    }
+  }, []);
 
   // Touch Move Parallax Tilt Handler (Mobile)
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>, cardIndex: number) => {
-    if (spreadState === 'dealing' || spreadState === 'squeezing') return;
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    if (spreadState !== 'awaiting_pick' && spreadState !== 'done') return;
     const touch = e.touches[0];
     if (!touch) return;
+    const cardEl = e.currentTarget.querySelector('.card-3d') as HTMLElement | null;
+    if (!cardEl) return;
+
     const rect = e.currentTarget.getBoundingClientRect();
     const x = touch.clientX - rect.left - rect.width / 2;
     const y = touch.clientY - rect.top - rect.height / 2;
-    const rx = Number((-(y / (rect.height / 2)) * 6.5).toFixed(2));
-    const ry = Number(((x / (rect.width / 2)) * 6.5).toFixed(2));
+    const rx = (-(y / (rect.height / 2)) * 6.0).toFixed(2);
+    const ry = ((x / (rect.width / 2)) * 6.0).toFixed(2);
     const angle = Math.round((Math.atan2(y, x) * 180) / Math.PI + 90);
     const posX = Math.max(0, Math.min(100, Math.round(50 + (x / rect.width) * 55)));
     const posY = Math.max(0, Math.min(100, Math.round(50 + (y / rect.height) * 55)));
-    setTilt({ index: cardIndex, rx, ry, angle, posX, posY });
-  };
 
-  const handleTouchEnd = () => {
-    setTilt({ index: null, rx: 0, ry: 0, angle: 115, posX: 50, posY: 50 });
-  };
+    cardEl.style.setProperty('--rx', `${rx}deg`);
+    cardEl.style.setProperty('--ry', `${ry}deg`);
+    cardEl.style.setProperty('--foil-angle', `${angle}deg`);
+    cardEl.style.setProperty('--foil-pos-x', `${posX}%`);
+    cardEl.style.setProperty('--foil-pos-y', `${posY}%`);
+    cardEl.style.setProperty('--shadow-x', `${(-Number(ry) * 1.5).toFixed(1)}px`);
+    cardEl.style.setProperty('--shadow-y', `${(18 + Number(rx) * 1.2).toFixed(1)}px`);
+
+    if (!cardEl.classList.contains('is-tilting')) {
+      cardEl.classList.add('is-tilting');
+    }
+  }, [spreadState]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    const cardEl = e.currentTarget.querySelector('.card-3d') as HTMLElement | null;
+    if (cardEl) {
+      cardEl.classList.remove('is-tilting');
+      cardEl.style.removeProperty('--rx');
+      cardEl.style.removeProperty('--ry');
+      cardEl.style.removeProperty('--foil-angle');
+      cardEl.style.removeProperty('--foil-pos-x');
+      cardEl.style.removeProperty('--foil-pos-y');
+      cardEl.style.removeProperty('--shadow-x');
+      cardEl.style.removeProperty('--shadow-y');
+    }
+  }, []);
 
   // Outcome banner styling
   const activePickIdx = chosenIndex !== null && chosenIndex !== undefined ? chosenIndex : selectedIdx;
@@ -902,29 +952,6 @@ export function CardStage({
             const isSqueezing = spreadState === 'squeezing' && isPicked;
             const isOtherSqueezing = spreadState === 'squeezing' && !isPicked;
 
-            // Calculate tilt transform without breaking preserve-3d
-            const isTilted = tilt.index === slotIndex;
-            let transformStyle = '';
-
-            if (isFlipped) {
-              if (isTilted) {
-                const baseScale = isPicked ? 1.04 : 1.02;
-                transformStyle = `rotateX(${tilt.rx}deg) rotateY(${180 - tilt.ry}deg) translateY(-5px) scale(${baseScale})`;
-              } else {
-                transformStyle = isPicked
-                  ? 'rotateY(180deg) scale(1.03)'
-                  : 'rotateY(180deg) scale(0.97)';
-              }
-            } else if (isSqueezing) {
-              transformStyle = 'translateY(-24px) scale(1.08)';
-            } else if (isOtherSqueezing) {
-              transformStyle = 'translateY(6px) scale(0.93)';
-            } else if (isTilted && isAwaiting) {
-              transformStyle = `rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg) translateY(-5px) scale(1.02)`;
-            } else if (isAwaiting) {
-              transformStyle = 'rotateY(0deg)';
-            }
-
             return (
               <div
                 key={slotIndex}
@@ -933,33 +960,25 @@ export function CardStage({
                 } ${isOtherSqueezing ? 'slot-squeeze-dimmed' : ''} ${
                   isFlipped && cardData?.edition === 'polychrome' ? 'slot-polychrome' : ''
                 } ${isFlipped && cardData?.edition === 'holo' ? 'slot-holo' : ''}`}
-                onMouseMove={e => handleMouseMove(e, slotIndex)}
+                onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
-                onTouchMove={e => handleTouchMove(e, slotIndex)}
+                onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
                 onTouchCancel={handleTouchEnd}
-                onClick={() => handleCardClick(slotIndex)}
+                onClick={e => handleCardClick(slotIndex, e)}
               >
                 <div
-                  className={`card-3d ${isFlipped ? 'flipped' : ''} ${isTilted ? 'is-tilting' : ''} ${
+                  className={`card-3d ${isFlipped ? 'flipped' : ''} ${
                     fastMode ? 'fast-flip' : ''
                   } ${isDealing ? 'card-dealing' : ''} ${isPicked ? 'card-picked' : ''} ${
                     isSqueezing ? `card-squeezing squeeze-card-tier-${squeezingTier ?? 0}` : ''
                   } ${
+                    isOtherSqueezing ? 'card-squeeze-dimmed' : ''
+                  } ${
                     isFlipped && !isPicked ? 'card-unpicked' : ''
                   }`}
                   style={{
-                    transform: transformStyle || undefined,
-                    animationDelay: `${slotIndex * 110}ms`,
-                    ...(isTilted
-                      ? ({
-                          '--foil-angle': `${tilt.angle}deg`,
-                          '--foil-pos-x': `${tilt.posX}%`,
-                          '--foil-pos-y': `${tilt.posY}%`,
-                          '--shadow-x': `${(-tilt.ry * 1.5).toFixed(1)}px`,
-                          '--shadow-y': `${(18 + tilt.rx * 1.2).toFixed(1)}px`,
-                        } as React.CSSProperties)
-                      : {}),
+                    animationDelay: `${slotIndex * (fastMode ? 40 : 90)}ms`,
                   }}
                 >
                   {/* CARD BACK (MẶT LƯNG: VÒNG TRÒN MA THUẬT VÀNG CỔ) */}
@@ -1217,6 +1236,8 @@ export function CardStage({
     </div>
   );
 }
+
+export const CardStage = memo(CardStageComponent);
 
 /**
  * Rune Resonance Pentagram Sigil Circle
