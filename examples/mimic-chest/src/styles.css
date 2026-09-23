@@ -1203,12 +1203,11 @@ h1, h2, h3, h4, .font-heading {
 
 .card-slot-3d.slot-awaiting {
   cursor: pointer;
-  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.25s ease;
+  transition: filter 0.25s ease;
 }
 
 .card-slot-3d.slot-awaiting:hover {
   filter: drop-shadow(0 0 18px rgba(245, 158, 11, 0.65));
-  transform: translateY(-5px);
 }
 
 .card-slot-3d.slot-picked {
@@ -1550,8 +1549,14 @@ h1, h2, h3, h4, .font-heading {
   position: relative;
   transform-style: preserve-3d !important;
   -webkit-transform-style: preserve-3d !important;
-  transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
+  will-change: transform;
+}
+
+/* While actively tracking mouse: immediate, buttery smooth damping (zero rubber-band lag) */
+.card-3d.is-tilting {
+  transition: transform 0.08s ease-out !important;
 }
 
 .card-scene > .card-3d {
@@ -1598,11 +1603,12 @@ h1, h2, h3, h4, .font-heading {
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
   box-shadow: 
-    0 22px 50px rgba(0, 0, 0, 0.88),
-    0 8px 20px rgba(0, 0, 0, 0.65),
+    var(--shadow-x, 0px) var(--shadow-y, 20px) 44px rgba(0, 0, 0, 0.82),
+    0 6px 16px rgba(0, 0, 0, 0.6),
     inset 0 1px 2px rgba(255, 255, 255, 0.2);
   overflow: hidden;
   user-select: none;
+  transition: box-shadow 0.15s ease-out;
 }
 
 /* ==========================================================================
@@ -2509,14 +2515,19 @@ h1, h2, h3, h4, .font-heading {
   border-radius: 12px;
   background: radial-gradient(
     circle at var(--foil-pos-x, 50%) var(--foil-pos-y, 50%),
-    rgba(255, 255, 255, 0.22) 0%,
-    rgba(255, 255, 255, 0.08) 28%,
+    rgba(255, 255, 255, 0.26) 0%,
+    rgba(255, 255, 255, 0.08) 30%,
     transparent 65%
   );
   pointer-events: none;
   z-index: 5;
   mix-blend-mode: overlay;
-  transition: opacity 0.2s ease;
+  opacity: 0;
+  transition: opacity 0.25s ease-out;
+}
+
+.card-3d.is-tilting .card-specular-glare {
+  opacity: 1;
 }
 
 /* Top RPG Header Bar */
@@ -3868,8 +3879,8 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .card-3d:hover .procedural-sigil {
-  transform: scale(1.05) rotate(1.5deg);
-  filter: drop-shadow(0 0 10px currentColor);
+  transform: scale(1.02);
+  filter: drop-shadow(0 0 8px currentColor);
 }
 
 .card-edition-polychrome .procedural-sigil {

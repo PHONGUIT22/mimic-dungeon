@@ -540,11 +540,12 @@ export function CardStage({
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
     const y = e.clientY - rect.top - rect.height / 2;
-    const rx = -(y / (rect.height / 2)) * 14;
-    const ry = (x / (rect.width / 2)) * 14;
+    // Natural, subtle 3D tilt (capped at 6.5 deg) for realistic, weighted physical card feel
+    const rx = Number((-(y / (rect.height / 2)) * 6.5).toFixed(2));
+    const ry = Number(((x / (rect.width / 2)) * 6.5).toFixed(2));
     const angle = Math.round((Math.atan2(y, x) * 180) / Math.PI + 90);
-    const posX = Math.round(50 + (x / rect.width) * 50);
-    const posY = Math.round(50 + (y / rect.height) * 50);
+    const posX = Math.max(0, Math.min(100, Math.round(50 + (x / rect.width) * 55)));
+    const posY = Math.max(0, Math.min(100, Math.round(50 + (y / rect.height) * 55)));
     setTilt({ index: cardIndex, rx, ry, angle, posX, posY });
   };
 
@@ -560,11 +561,11 @@ export function CardStage({
     const rect = e.currentTarget.getBoundingClientRect();
     const x = touch.clientX - rect.left - rect.width / 2;
     const y = touch.clientY - rect.top - rect.height / 2;
-    const rx = -(y / (rect.height / 2)) * 14;
-    const ry = (x / (rect.width / 2)) * 14;
+    const rx = Number((-(y / (rect.height / 2)) * 6.5).toFixed(2));
+    const ry = Number(((x / (rect.width / 2)) * 6.5).toFixed(2));
     const angle = Math.round((Math.atan2(y, x) * 180) / Math.PI + 90);
-    const posX = Math.round(50 + (x / rect.width) * 50);
-    const posY = Math.round(50 + (y / rect.height) * 50);
+    const posX = Math.max(0, Math.min(100, Math.round(50 + (x / rect.width) * 55)));
+    const posY = Math.max(0, Math.min(100, Math.round(50 + (y / rect.height) * 55)));
     setTilt({ index: cardIndex, rx, ry, angle, posX, posY });
   };
 
@@ -692,19 +693,19 @@ export function CardStage({
 
             if (isFlipped) {
               if (isTilted) {
-                const baseScale = isPicked ? 1.07 : 1.03;
-                transformStyle = `rotateX(${tilt.rx}deg) rotateY(${180 - tilt.ry}deg) translateY(-8px) scale(${baseScale})`;
+                const baseScale = isPicked ? 1.04 : 1.02;
+                transformStyle = `rotateX(${tilt.rx}deg) rotateY(${180 - tilt.ry}deg) translateY(-5px) scale(${baseScale})`;
               } else {
                 transformStyle = isPicked
-                  ? 'rotateY(180deg) scale(1.04)'
-                  : 'rotateY(180deg) scale(0.96)';
+                  ? 'rotateY(180deg) scale(1.03)'
+                  : 'rotateY(180deg) scale(0.97)';
               }
             } else if (isSqueezing) {
               transformStyle = 'translateY(-24px) scale(1.08)';
             } else if (isOtherSqueezing) {
               transformStyle = 'translateY(6px) scale(0.93)';
             } else if (isTilted && isAwaiting) {
-              transformStyle = `rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg) translateY(-8px) scale(1.04)`;
+              transformStyle = `rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg) translateY(-5px) scale(1.02)`;
             } else if (isAwaiting) {
               transformStyle = 'rotateY(0deg)';
             }
@@ -725,7 +726,7 @@ export function CardStage({
                 onClick={() => handleCardClick(slotIndex)}
               >
                 <div
-                  className={`card-3d ${isFlipped ? 'flipped' : ''} ${
+                  className={`card-3d ${isFlipped ? 'flipped' : ''} ${isTilted ? 'is-tilting' : ''} ${
                     fastMode ? 'fast-flip' : ''
                   } ${isDealing ? 'card-dealing' : ''} ${isPicked ? 'card-picked' : ''} ${
                     isSqueezing ? `card-squeezing squeeze-card-tier-${squeezingTier ?? 0}` : ''
@@ -740,6 +741,8 @@ export function CardStage({
                           '--foil-angle': `${tilt.angle}deg`,
                           '--foil-pos-x': `${tilt.posX}%`,
                           '--foil-pos-y': `${tilt.posY}%`,
+                          '--shadow-x': `${(-tilt.ry * 1.5).toFixed(1)}px`,
+                          '--shadow-y': `${(18 + tilt.rx * 1.2).toFixed(1)}px`,
                         } as React.CSSProperties)
                       : {}),
                   }}
